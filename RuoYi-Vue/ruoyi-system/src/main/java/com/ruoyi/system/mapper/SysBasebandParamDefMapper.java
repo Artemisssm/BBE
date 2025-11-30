@@ -5,43 +5,65 @@ import com.ruoyi.system.domain.SysBasebandParamDef;
 
 /**
  * 基带参数定义Mapper接口
+ * 
+ * @author ruoyi
+ * @date 2025-11-27
  */
-public interface SysBasebandParamDefMapper
+public interface SysBasebandParamDefMapper 
 {
     /**
-     * 查询参数定义列表
+     * 查询基带参数定义
+     * 
+     * @param paramId 基带参数定义主键
+     * @return 基带参数定义
      */
-    public List<SysBasebandParamDef> selectBasebandParamDefList(SysBasebandParamDef paramDef);
+    public SysBasebandParamDef selectSysBasebandParamDefByParamId(Long paramId);
 
     /**
-     * 根据ID查询
+     * 查询基带参数定义列表
+     * 
+     * @param sysBasebandParamDef 基带参数定义
+     * @return 基带参数定义集合
      */
-    public SysBasebandParamDef selectBasebandParamDefById(Long paramId);
+    public List<SysBasebandParamDef> selectSysBasebandParamDefList(SysBasebandParamDef sysBasebandParamDef);
 
     /**
-     * 新增
+     * 根据单元类型查询参数定义列表
+     * 
+     * @param unitType 单元类型
+     * @return 基带参数定义集合
      */
-    public int insertBasebandParamDef(SysBasebandParamDef paramDef);
+    public List<SysBasebandParamDef> selectSysBasebandParamDefByUnitType(String unitType);
 
     /**
-     * 修改
+     * 新增基带参数定义
+     * 
+     * @param sysBasebandParamDef 基带参数定义
+     * @return 结果
      */
-    public int updateBasebandParamDef(SysBasebandParamDef paramDef);
+    public int insertSysBasebandParamDef(SysBasebandParamDef sysBasebandParamDef);
 
     /**
-     * 批量删除
+     * 修改基带参数定义
+     * 
+     * @param sysBasebandParamDef 基带参数定义
+     * @return 结果
      */
-    public int deleteBasebandParamDefByIds(Long[] paramIds);
+    public int updateSysBasebandParamDef(SysBasebandParamDef sysBasebandParamDef);
 
     /**
-     * 单个删除
+     * 删除基带参数定义
+     * 
+     * @param paramId 基带参数定义主键
+     * @return 结果
      */
-    public int deleteBasebandParamDefById(Long paramId);
+    public int deleteSysBasebandParamDefByParamId(Long paramId);
 
     /**
-     * 参数编码唯一性
+     * 批量删除基带参数定义
+     * 
+     * @param paramIds 需要删除的数据主键集合
+     * @return 结果
      */
-    public SysBasebandParamDef checkParamCodeUnique(String paramCode);
+    public int deleteSysBasebandParamDefByParamIds(Long[] paramIds);
 }
-
-

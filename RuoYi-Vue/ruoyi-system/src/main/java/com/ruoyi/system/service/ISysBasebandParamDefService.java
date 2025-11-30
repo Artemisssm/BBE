@@ -5,43 +5,57 @@ import com.ruoyi.system.domain.SysBasebandParamDef;
 
 /**
  * 基带参数定义Service接口
+ * 
+ * @author ruoyi
+ * @date 2025-11-27
  */
-public interface ISysBasebandParamDefService
+public interface ISysBasebandParamDefService 
 {
     /**
-     * 查询列表
+     * 查询基带参数定义
+     * 
+     * @param paramId 基带参数定义主键
+     * @return 基带参数定义
      */
-    public List<SysBasebandParamDef> selectBasebandParamDefList(SysBasebandParamDef paramDef);
+    public SysBasebandParamDef selectSysBasebandParamDefByParamId(Long paramId);
 
     /**
-     * 根据ID查询
+     * 查询基带参数定义列表
+     * 
+     * @param sysBasebandParamDef 基带参数定义
+     * @return 基带参数定义集合
      */
-    public SysBasebandParamDef selectBasebandParamDefById(Long paramId);
+    public List<SysBasebandParamDef> selectSysBasebandParamDefList(SysBasebandParamDef sysBasebandParamDef);
 
     /**
-     * 新增
+     * 新增基带参数定义
+     * 
+     * @param sysBasebandParamDef 基带参数定义
+     * @return 结果
      */
-    public int insertBasebandParamDef(SysBasebandParamDef paramDef);
+    public int insertSysBasebandParamDef(SysBasebandParamDef sysBasebandParamDef);
 
     /**
-     * 修改
+     * 修改基带参数定义
+     * 
+     * @param sysBasebandParamDef 基带参数定义
+     * @return 结果
      */
-    public int updateBasebandParamDef(SysBasebandParamDef paramDef);
+    public int updateSysBasebandParamDef(SysBasebandParamDef sysBasebandParamDef);
 
     /**
-     * 批量删除
+     * 批量删除基带参数定义
+     * 
+     * @param paramIds 需要删除的基带参数定义主键集合
+     * @return 结果
      */
-    public int deleteBasebandParamDefByIds(Long[] paramIds);
+    public int deleteSysBasebandParamDefByParamIds(Long[] paramIds);
 
     /**
-     * 单个删除
+     * 删除基带参数定义信息
+     * 
+     * @param paramId 基带参数定义主键
+     * @return 结果
      */
-    public int deleteBasebandParamDefById(Long paramId);
-
-    /**
-     * 编码唯一性
-     */
-    public boolean checkParamCodeUnique(SysBasebandParamDef paramDef);
+    public int deleteSysBasebandParamDefByParamId(Long paramId);
 }
-
-

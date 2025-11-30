@@ -48,12 +48,12 @@ public class BasebandDispatchServiceImpl implements IBasebandDispatchService
     @Override
     public void dispatch(Long unitId, String operator, String dispatchType)
     {
-        SysBasebandUnit unit = unitMapper.selectBasebandUnitById(unitId);
+        SysBasebandUnit unit = unitMapper.selectSysBasebandUnitByUnitId(unitId);
         if (unit == null)
         {
             throw new ServiceException("单元不存在");
         }
-        List<BasebandParamVo> params = paramValueMapper.selectParamVoByUnitId(unitId);
+        List<BasebandParamVo> params = paramValueMapper.selectParamVoListByUnitId(unitId);
         if (params.isEmpty())
         {
             throw new ServiceException("该单元尚未配置参数");

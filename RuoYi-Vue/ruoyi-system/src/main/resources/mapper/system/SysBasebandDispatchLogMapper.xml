@@ -1,53 +1,78 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper
-        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
-        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.ruoyi.system.mapper.SysBasebandDispatchLogMapper">
-
-    <resultMap id="BasebandDispatchLogResult" type="com.ruoyi.system.domain.SysBasebandDispatchLog">
-        <id     property="logId"         column="log_id"/>
-        <result property="unitId"        column="unit_id"/>
-        <result property="dispatchType"  column="dispatch_type"/>
-        <result property="multicastIp"   column="multicast_ip"/>
-        <result property="multicastPort" column="multicast_port"/>
-        <result property="packetLen"     column="packet_len"/>
-        <result property="resultStatus"  column="result_status"/>
-        <result property="resultMsg"     column="result_msg"/>
-        <result property="sendTime"      column="send_time"/>
-        <result property="createBy"      column="create_by"/>
-        <result property="createTime"    column="create_time"/>
+    
+    <resultMap type="SysBasebandDispatchLog" id="SysBasebandDispatchLogResult">
+        <result property="logId"    column="log_id"    />
+        <result property="unitId"    column="unit_id"    />
+        <result property="dispatchType"    column="dispatch_type"    />
+        <result property="multicastIp"    column="multicast_ip"    />
+        <result property="multicastPort"    column="multicast_port"    />
+        <result property="packetLen"    column="packet_len"    />
+        <result property="resultStatus"    column="result_status"    />
+        <result property="resultMsg"    column="result_msg"    />
+        <result property="sendTime"    column="send_time"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createTime"    column="create_time"    />
     </resultMap>
 
-    <select id="selectById" resultMap="BasebandDispatchLogResult">
-        select log_id, unit_id, dispatch_type, multicast_ip, multicast_port, packet_len, result_status,
-               result_msg, send_time, create_by, create_time
-        from sys_baseband_dispatch_log
+    <sql id="selectLogVo">
+        select log_id, unit_id, dispatch_type, multicast_ip, multicast_port, packet_len, result_status, result_msg, send_time, create_by from sys_baseband_dispatch_log
+    </sql>
+
+    <select id="selectLogList" parameterType="SysBasebandDispatchLog" resultMap="SysBasebandDispatchLogResult">
+        <include refid="selectLogVo"/>
+        <where>  
+            <if test="unitId != null"> and unit_id = #{unitId}</if>
+            <if test="dispatchType != null and dispatchType != ''"> and dispatch_type = #{dispatchType}</if>
+            <if test="resultStatus != null and resultStatus != ''"> and result_status = #{resultStatus}</if>
+        </where>
+        order by log_id desc
+    </select>
+    
+    <select id="selectLogById" parameterType="Long" resultMap="SysBasebandDispatchLogResult">
+        <include refid="selectLogVo"/>
         where log_id = #{logId}
     </select>
-
-    <select id="selectList" resultMap="BasebandDispatchLogResult">
-        select log_id, unit_id, dispatch_type, multicast_ip, multicast_port, packet_len, result_status,
-               result_msg, send_time, create_by, create_time
-        from sys_baseband_dispatch_log
-        <where>
-            <if test="unitId != null">
-                and unit_id = #{unitId}
-            </if>
-            <if test="resultStatus != null and resultStatus != ''">
-                and result_status = #{resultStatus}
-            </if>
-        </where>
-        order by send_time desc, log_id desc
-    </select>
-
-    <insert id="insertLog" parameterType="com.ruoyi.system.domain.SysBasebandDispatchLog" useGeneratedKeys="true" keyProperty="logId">
+        
+    <insert id="insertLog" parameterType="SysBasebandDispatchLog" useGeneratedKeys="true" keyProperty="logId">
         insert into sys_baseband_dispatch_log
-            (unit_id, dispatch_type, multicast_ip, multicast_port, packet_len,
-             result_status, result_msg, send_time, create_by, create_time)
-        values
-            (#{unitId}, #{dispatchType}, #{multicastIp}, #{multicastPort}, #{packetLen},
-             #{resultStatus}, #{resultMsg}, #{sendTime}, #{createBy}, #{createTime})
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="unitId != null">unit_id,</if>
+            <if test="dispatchType != null">dispatch_type,</if>
+            <if test="multicastIp != null">multicast_ip,</if>
+            <if test="multicastPort != null">multicast_port,</if>
+            <if test="packetLen != null">packet_len,</if>
+            <if test="resultStatus != null">result_status,</if>
+            <if test="resultMsg != null">result_msg,</if>
+            <if test="sendTime != null">send_time,</if>
+            <if test="createBy != null">create_by,</if>
+            create_time
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="unitId != null">#{unitId},</if>
+            <if test="dispatchType != null">#{dispatchType},</if>
+            <if test="multicastIp != null">#{multicastIp},</if>
+            <if test="multicastPort != null">#{multicastPort},</if>
+            <if test="packetLen != null">#{packetLen},</if>
+            <if test="resultStatus != null">#{resultStatus},</if>
+            <if test="resultMsg != null">#{resultMsg},</if>
+            <if test="sendTime != null">#{sendTime},</if>
+            <if test="createBy != null">#{createBy},</if>
+            sysdate()
+         </trim>
     </insert>
 
-</mapper>
+    <delete id="deleteLogById" parameterType="Long">
+        delete from sys_baseband_dispatch_log where log_id = #{logId}
+    </delete>
 
+    <delete id="deleteLogByIds" parameterType="String">
+        delete from sys_baseband_dispatch_log where log_id in 
+        <foreach item="logId" collection="array" open="(" separator="," close=")">
+            #{logId}
+        </foreach>
+    </delete>
+</mapper>

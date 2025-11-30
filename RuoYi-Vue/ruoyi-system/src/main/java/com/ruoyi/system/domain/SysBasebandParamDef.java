@@ -1,61 +1,60 @@
 package com.ruoyi.system.domain;
 
 import java.math.BigDecimal;
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Size;
-import org.apache.commons.lang3.builder.ToStringBuilder;
-import org.apache.commons.lang3.builder.ToStringStyle;
 import com.ruoyi.common.annotation.Excel;
 import com.ruoyi.common.core.domain.BaseEntity;
+import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
 
 /**
- * 基带参数定义表 sys_baseband_param_def
- *
- * @author
+ * 基带参数定义对象 sys_baseband_param_def
+ * 
+ * @author ruoyi
+ * @date 2025-11-27
  */
 public class SysBasebandParamDef extends BaseEntity
 {
     private static final long serialVersionUID = 1L;
 
-    /** 参数ID */
-    @Excel(name = "参数ID", cellType = Excel.ColumnType.NUMERIC)
+    /** 参数定义主键 */
     private Long paramId;
 
-    /** 对应单元类型 */
+    /** 适用单元类型 */
     @Excel(name = "单元类型")
     private String unitType;
 
-    /** 参数编码 */
+    /** 唯一编码 */
     @Excel(name = "参数编码")
     private String paramCode;
 
-    /** 参数名称 */
+    /** 显示名称 */
     @Excel(name = "参数名称")
     private String paramName;
 
-    /** 值类型 */
-    @Excel(name = "值类型", readConverterExp = "ENUM=枚举,UINT=无符号整数,FLOAT=浮点,SWITCH=开关")
+    /** 值类型 ENUM/UINT/FLOAT/SWITCH */
+    @Excel(name = "值类型")
     private String valueType;
 
-    /** 枚举 JSON 字符串 */
+    /** 枚举选项 JSON */
     private String enumOptions;
 
     /** 最小值 */
+    @Excel(name = "最小值")
     private BigDecimal minValue;
 
     /** 最大值 */
+    @Excel(name = "最大值")
     private BigDecimal maxValue;
 
-    /** 缩放系数 */
+    /** 浮点转无符号整数时的缩放倍数 */
     @Excel(name = "缩放倍数")
     private Integer scaleFactor;
 
-    /** 位宽 */
+    /** 硬件位宽 */
     @Excel(name = "位宽")
     private Integer bitLength;
 
-    /** 硬件顺序 */
+    /** 硬件顺序字段 */
     @Excel(name = "硬件顺序")
     private Integer hardwareOrder;
 
@@ -63,139 +62,129 @@ public class SysBasebandParamDef extends BaseEntity
     @Excel(name = "默认值")
     private String defaultValue;
 
-    public Long getParamId()
-    {
-        return paramId;
-    }
-
-    public void setParamId(Long paramId)
+    public void setParamId(Long paramId) 
     {
         this.paramId = paramId;
     }
 
-    @NotBlank(message = "单元类型不能为空")
-    public String getUnitType()
+    public Long getParamId() 
     {
-        return unitType;
+        return paramId;
     }
 
-    public void setUnitType(String unitType)
+    public void setUnitType(String unitType) 
     {
         this.unitType = unitType;
     }
 
-    @NotBlank(message = "参数编码不能为空")
-    @Size(max = 64, message = "参数编码长度不能超过64个字符")
-    public String getParamCode()
+    public String getUnitType() 
     {
-        return paramCode;
+        return unitType;
     }
 
-    public void setParamCode(String paramCode)
+    public void setParamCode(String paramCode) 
     {
         this.paramCode = paramCode;
     }
 
-    @NotBlank(message = "参数名称不能为空")
-    @Size(max = 64, message = "参数名称长度不能超过64个字符")
-    public String getParamName()
+    public String getParamCode() 
     {
-        return paramName;
+        return paramCode;
     }
 
-    public void setParamName(String paramName)
+    public void setParamName(String paramName) 
     {
         this.paramName = paramName;
     }
 
-    @NotBlank(message = "值类型不能为空")
-    public String getValueType()
+    public String getParamName() 
     {
-        return valueType;
+        return paramName;
     }
 
-    public void setValueType(String valueType)
+    public void setValueType(String valueType) 
     {
         this.valueType = valueType;
     }
 
-    public String getEnumOptions()
+    public String getValueType() 
     {
-        return enumOptions;
+        return valueType;
     }
 
-    public void setEnumOptions(String enumOptions)
+    public void setEnumOptions(String enumOptions) 
     {
         this.enumOptions = enumOptions;
     }
 
-    public BigDecimal getMinValue()
+    public String getEnumOptions() 
     {
-        return minValue;
+        return enumOptions;
     }
 
-    public void setMinValue(BigDecimal minValue)
+    public void setMinValue(BigDecimal minValue) 
     {
         this.minValue = minValue;
     }
 
-    public BigDecimal getMaxValue()
+    public BigDecimal getMinValue() 
     {
-        return maxValue;
+        return minValue;
     }
 
-    public void setMaxValue(BigDecimal maxValue)
+    public void setMaxValue(BigDecimal maxValue) 
     {
         this.maxValue = maxValue;
     }
 
-    @NotNull(message = "缩放倍数不能为空")
-    public Integer getScaleFactor()
+    public BigDecimal getMaxValue() 
     {
-        return scaleFactor;
+        return maxValue;
     }
 
-    public void setScaleFactor(Integer scaleFactor)
+    public void setScaleFactor(Integer scaleFactor) 
     {
         this.scaleFactor = scaleFactor;
     }
 
-    @NotNull(message = "位宽不能为空")
-    public Integer getBitLength()
+    public Integer getScaleFactor() 
     {
-        return bitLength;
+        return scaleFactor;
     }
 
-    public void setBitLength(Integer bitLength)
+    public void setBitLength(Integer bitLength) 
     {
         this.bitLength = bitLength;
     }
 
-    @NotNull(message = "硬件顺序不能为空")
-    public Integer getHardwareOrder()
+    public Integer getBitLength() 
     {
-        return hardwareOrder;
+        return bitLength;
     }
 
-    public void setHardwareOrder(Integer hardwareOrder)
+    public void setHardwareOrder(Integer hardwareOrder) 
     {
         this.hardwareOrder = hardwareOrder;
     }
 
-    public String getDefaultValue()
+    public Integer getHardwareOrder() 
     {
-        return defaultValue;
+        return hardwareOrder;
     }
 
-    public void setDefaultValue(String defaultValue)
+    public void setDefaultValue(String defaultValue) 
     {
         this.defaultValue = defaultValue;
     }
 
-    @Override
-    public String toString()
+    public String getDefaultValue() 
     {
-        return new ToStringBuilder(this, ToStringStyle.MULTI_LINE_STYLE)
+        return defaultValue;
+    }
+
+    @Override
+    public String toString() {
+        return new ToStringBuilder(this,ToStringStyle.MULTI_LINE_STYLE)
             .append("paramId", getParamId())
             .append("unitType", getUnitType())
             .append("paramCode", getParamCode())
@@ -213,5 +202,3 @@ public class SysBasebandParamDef extends BaseEntity
             .toString();
     }
 }
-
-

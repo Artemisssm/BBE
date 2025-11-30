@@ -75,42 +75,60 @@
       <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>
 
-    <el-table v-loading="loading" :data="paramDefList" @selection-change="handleSelectionChange">
+    <el-table v-loading="loading" :data="paramDefList" @selection-change="handleSelectionChange" :row-class-name="tableRowClassName">
       <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="参数ID" align="center" prop="paramId" width="80" />
-      <el-table-column label="单元类型" align="center" prop="unitType" width="100">
+      <el-table-column label="序号" type="index" width="60" align="center" />
+      <el-table-column label="单元类型" align="center" prop="unitType" width="100" fixed>
         <template #default="scope">
-          <span v-if="scope.row.unitType === 'ENCODE'">编码</span>
-          <span v-else-if="scope.row.unitType === 'MODULATE'">调制</span>
-          <span v-else-if="scope.row.unitType === 'DEMODULATE'">解调</span>
-          <span v-else-if="scope.row.unitType === 'DECODE'">译码</span>
-          <span v-else>{{ scope.row.unitType }}</span>
+          <el-tag :type="getUnitTypeTag(scope.row.unitType)" size="small">
+            {{ getUnitTypeName(scope.row.unitType) }}
+          </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="参数编码" align="center" prop="paramCode" :show-overflow-tooltip="true" />
-      <el-table-column label="参数名称" align="center" prop="paramName" :show-overflow-tooltip="true" />
-      <el-table-column label="值类型" align="center" prop="valueType" width="120">
+      <el-table-column label="参数编码" align="center" prop="paramCode" width="180" :show-overflow-tooltip="true">
         <template #default="scope">
-          <span v-if="scope.row.valueType === 'ENUM'">枚举</span>
-          <span v-else-if="scope.row.valueType === 'UINT'">无符号整数</span>
-          <span v-else-if="scope.row.valueType === 'FLOAT'">浮点</span>
-          <span v-else-if="scope.row.valueType === 'SWITCH'">开关</span>
-          <span v-else>{{ scope.row.valueType }}</span>
+          <span class="param-code-text">{{ scope.row.paramCode }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="缩放倍数" align="center" prop="scaleFactor" width="100" />
+      <el-table-column label="参数名称" align="center" prop="paramName" width="180" :show-overflow-tooltip="true">
+        <template #default="scope">
+          <span class="param-name-text">{{ scope.row.paramName }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="值类型" align="center" prop="valueType" width="110">
+        <template #default="scope">
+          <el-tag :type="getValueTypeTag(scope.row.valueType)" size="small">
+            {{ getValueTypeName(scope.row.valueType) }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column label="取值范围" align="center" width="150">
+        <template #default="scope">
+          <span v-if="scope.row.valueType === 'ENUM'" class="range-text">
+            {{ getEnumCount(scope.row.enumOptions) }}个选项
+          </span>
+          <span v-else-if="scope.row.valueType === 'SWITCH'" class="range-text">
+            开/关
+          </span>
+          <span v-else-if="scope.row.minValue !== null && scope.row.maxValue !== null" class="range-text">
+            {{ scope.row.minValue }} ~ {{ scope.row.maxValue }}
+          </span>
+          <span v-else class="range-text">-</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="硬件顺序" align="center" prop="hardwareOrder" width="100">
+        <template #default="scope">
+          <el-tag size="small" type="info">{{ scope.row.hardwareOrder }}</el-tag>
+        </template>
+      </el-table-column>
       <el-table-column label="位宽" align="center" prop="bitLength" width="80" />
-      <el-table-column label="硬件顺序" align="center" prop="hardwareOrder" width="100" />
-      <el-table-column label="默认值" align="center" prop="defaultValue" width="120" />
-      <el-table-column label="创建时间" align="center" prop="createTime" width="180">
-        <template #default="scope">
-          <span>{{ parseTime(scope.row.createTime) }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" width="180" align="center" class-name="small-padding fixed-width">
+      <el-table-column label="缩放" align="center" prop="scaleFactor" width="80" />
+      <el-table-column label="默认值" align="center" prop="defaultValue" width="100" :show-overflow-tooltip="true" />
+      <el-table-column label="备注" align="center" prop="remark" width="200" :show-overflow-tooltip="true" />
+      <el-table-column label="操作" width="160" align="center" class-name="small-padding fixed-width" fixed="right">
         <template #default="scope">
           <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['system:basebandParam:edit']">修改</el-button>
-          <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['system:basebandParam:remove']">删除</el-button>
+          <el-button link type="danger" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['system:basebandParam:remove']">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -192,6 +210,7 @@
                 type="textarea" 
                 :rows="4"
                 placeholder='请输入JSON格式的枚举选项，例如：{"0":"选项1","1":"选项2"}' 
+                popper-class="baseband-select-popper"
               />
               <div style="color: #909399; font-size: 12px; margin-top: 5px;">JSON格式：{"key":"value"}，例如：{"0":"关闭","1":"开启"}</div>
             </el-form-item>
@@ -269,6 +288,69 @@ const data = reactive({
 })
 
 const { queryParams, form, rules } = toRefs(data)
+
+/** 获取单元类型名称 */
+function getUnitTypeName(unitType) {
+  const typeMap = {
+    'ENCODE': '编码',
+    'MODULATE': '调制',
+    'DEMODULATE': '解调',
+    'DECODE': '译码'
+  }
+  return typeMap[unitType] || unitType
+}
+
+/** 获取单元类型标签样式 */
+function getUnitTypeTag(unitType) {
+  const tagMap = {
+    'ENCODE': 'primary',
+    'MODULATE': 'success',
+    'DEMODULATE': 'warning',
+    'DECODE': 'danger'
+  }
+  return tagMap[unitType] || 'info'
+}
+
+/** 获取值类型名称 */
+function getValueTypeName(valueType) {
+  const typeMap = {
+    'ENUM': '枚举',
+    'UINT': '整数',
+    'FLOAT': '浮点',
+    'SWITCH': '开关'
+  }
+  return typeMap[valueType] || valueType
+}
+
+/** 获取值类型标签样式 */
+function getValueTypeTag(valueType) {
+  const tagMap = {
+    'ENUM': '',
+    'UINT': 'success',
+    'FLOAT': 'warning',
+    'SWITCH': 'danger'
+  }
+  return tagMap[valueType] || 'info'
+}
+
+/** 获取枚举选项数量 */
+function getEnumCount(enumOptions) {
+  if (!enumOptions) return 0
+  try {
+    const options = JSON.parse(enumOptions)
+    return Object.keys(options).length
+  } catch (e) {
+    return 0
+  }
+}
+
+/** 表格行样式 */
+function tableRowClassName({ row, rowIndex }) {
+  if (rowIndex % 2 === 1) {
+    return 'even-row'
+  }
+  return ''
+}
 
 /** 值类型变化 */
 function handleValueTypeChange() {
@@ -406,3 +488,40 @@ function handleExport() {
 
 getList()
 </script>
+
+<style scoped>
+.param-code-text {
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  color: #606266;
+  font-weight: 500;
+}
+
+.param-name-text {
+  font-weight: 500;
+  color: #303133;
+}
+
+.range-text {
+  font-size: 12px;
+  color: #909399;
+}
+
+:deep(.even-row) {
+  background-color: #fafafa;
+}
+
+:deep(.el-table) {
+  font-size: 13px;
+}
+
+:deep(.el-table th) {
+  background-color: #f5f7fa;
+  color: #606266;
+  font-weight: 600;
+}
+
+:deep(.el-table__body-wrapper) {
+  overflow-x: auto;
+}
+</style>

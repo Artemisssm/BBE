@@ -1,95 +1,87 @@
 package com.ruoyi.system.domain;
 
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
+import com.ruoyi.common.core.domain.BaseEntity;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
-import com.ruoyi.common.annotation.Excel;
-import com.ruoyi.common.core.domain.BaseEntity;
 
 /**
- * 基带参数取值表 sys_baseband_param_value
+ * 基带参数取值对象 sys_baseband_param_value
+ * 
+ * @author ruoyi
+ * @date 2025-11-27
  */
 public class SysBasebandParamValue extends BaseEntity
 {
     private static final long serialVersionUID = 1L;
 
-    /** 主键 */
-    @Excel(name = "记录ID", cellType = Excel.ColumnType.NUMERIC)
+    /** 参数值主键 */
     private Long valueId;
 
-    /** 单元ID */
+    /** 所属单元 */
     private Long unitId;
 
-    /** 参数ID */
+    /** 参数定义 */
     private Long paramId;
 
-    /** 原始输入值 */
-    @Excel(name = "原始值")
+    /** 用户输入原值（字符串表示） */
     private String rawValue;
 
-    /** 转换后的无符号整数值 */
-    @Excel(name = "硬件值")
+    /** 转换后的无符号整型 */
     private Long uintValue;
 
-    public Long getValueId()
-    {
-        return valueId;
-    }
-
-    public void setValueId(Long valueId)
+    public void setValueId(Long valueId) 
     {
         this.valueId = valueId;
     }
 
-    @NotNull(message = "单元ID不能为空")
-    public Long getUnitId()
+    public Long getValueId() 
     {
-        return unitId;
+        return valueId;
     }
 
-    public void setUnitId(Long unitId)
+    public void setUnitId(Long unitId) 
     {
         this.unitId = unitId;
     }
 
-    @NotNull(message = "参数ID不能为空")
-    public Long getParamId()
+    public Long getUnitId() 
     {
-        return paramId;
+        return unitId;
     }
 
-    public void setParamId(Long paramId)
+    public void setParamId(Long paramId) 
     {
         this.paramId = paramId;
     }
 
-    @NotBlank(message = "原始值不能为空")
-    public String getRawValue()
+    public Long getParamId() 
     {
-        return rawValue;
+        return paramId;
     }
 
-    public void setRawValue(String rawValue)
+    public void setRawValue(String rawValue) 
     {
         this.rawValue = rawValue;
     }
 
-    @NotNull(message = "硬件值不能为空")
-    public Long getUintValue()
+    public String getRawValue() 
     {
-        return uintValue;
+        return rawValue;
     }
 
-    public void setUintValue(Long uintValue)
+    public void setUintValue(Long uintValue) 
     {
         this.uintValue = uintValue;
     }
 
-    @Override
-    public String toString()
+    public Long getUintValue() 
     {
-        return new ToStringBuilder(this, ToStringStyle.MULTI_LINE_STYLE)
+        return uintValue;
+    }
+
+    @Override
+    public String toString() {
+        return new ToStringBuilder(this,ToStringStyle.MULTI_LINE_STYLE)
             .append("valueId", getValueId())
             .append("unitId", getUnitId())
             .append("paramId", getParamId())
@@ -100,5 +92,3 @@ public class SysBasebandParamValue extends BaseEntity
             .toString();
     }
 }
-
-

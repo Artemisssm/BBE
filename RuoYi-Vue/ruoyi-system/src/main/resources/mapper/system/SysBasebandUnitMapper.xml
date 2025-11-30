@@ -1,90 +1,89 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper
-        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
-        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.ruoyi.system.mapper.SysBasebandUnitMapper">
-
-    <resultMap type="com.ruoyi.system.domain.SysBasebandUnit" id="SysBasebandUnitResult">
-        <id     property="unitId"    column="unit_id"/>
-        <result property="unitName"  column="unit_name"/>
-        <result property="unitType"  column="unit_type"/>
-        <result property="channelNo" column="channel_no"/>
-        <result property="status"    column="status"/>
-        <result property="version"   column="version"/>
-        <result property="remark"    column="remark"/>
-        <result property="createBy"  column="create_by"/>
-        <result property="createTime" column="create_time"/>
-        <result property="updateBy"  column="update_by"/>
-        <result property="updateTime" column="update_time"/>
+    
+    <resultMap type="SysBasebandUnit" id="SysBasebandUnitResult">
+        <result property="unitId"    column="unit_id"    />
+        <result property="unitName"    column="unit_name"    />
+        <result property="unitType"    column="unit_type"    />
+        <result property="channelNo"    column="channel_no"    />
+        <result property="status"    column="status"    />
+        <result property="version"    column="version"    />
+        <result property="remark"    column="remark"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateTime"    column="update_time"    />
     </resultMap>
 
-    <sql id="selectBasebandUnitVo">
-        select unit_id, unit_name, unit_type, channel_no, status, version, remark, create_by, create_time, update_by, update_time
-        from sys_baseband_unit
+    <sql id="selectSysBasebandUnitVo">
+        select unit_id, unit_name, unit_type, channel_no, status, version, remark, create_by, create_time, update_by, update_time from sys_baseband_unit
     </sql>
 
-    <select id="selectBasebandUnitList" resultMap="SysBasebandUnitResult">
-        <include refid="selectBasebandUnitVo"/>
-        <where>
-            <if test="unitName != null and unitName != ''">
-                AND unit_name like concat('%', #{unitName}, '%')
-            </if>
-            <if test="unitType != null and unitType != ''">
-                AND unit_type = #{unitType}
-            </if>
-            <if test="status != null and status != ''">
-                AND status = #{status}
-            </if>
-            <if test="channelNo != null">
-                AND channel_no = #{channelNo}
-            </if>
+    <select id="selectSysBasebandUnitList" parameterType="SysBasebandUnit" resultMap="SysBasebandUnitResult">
+        <include refid="selectSysBasebandUnitVo"/>
+        <where>  
+            <if test="unitName != null  and unitName != ''"> and unit_name like concat('%', #{unitName}, '%')</if>
+            <if test="unitType != null  and unitType != ''"> and unit_type = #{unitType}</if>
+            <if test="status != null  and status != ''"> and status = #{status}</if>
         </where>
-        order by create_time desc, unit_id desc
+        order by unit_id desc
     </select>
-
-    <select id="selectBasebandUnitById" resultMap="SysBasebandUnitResult">
-        <include refid="selectBasebandUnitVo"/>
+    
+    <select id="selectSysBasebandUnitByUnitId" parameterType="Long" resultMap="SysBasebandUnitResult">
+        <include refid="selectSysBasebandUnitVo"/>
         where unit_id = #{unitId}
     </select>
-
-    <insert id="insertBasebandUnit" parameterType="com.ruoyi.system.domain.SysBasebandUnit" useGeneratedKeys="true" keyProperty="unitId">
+        
+    <insert id="insertSysBasebandUnit" parameterType="SysBasebandUnit" useGeneratedKeys="true" keyProperty="unitId">
         insert into sys_baseband_unit
-        (unit_name, unit_type, channel_no, status, version, remark, create_by, create_time, update_by, update_time)
-        values
-        (#{unitName}, #{unitType}, #{channelNo}, #{status}, #{version}, #{remark}, #{createBy}, #{createTime}, #{updateBy}, #{updateTime})
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="unitName != null and unitName != ''">unit_name,</if>
+            <if test="unitType != null and unitType != ''">unit_type,</if>
+            <if test="channelNo != null">channel_no,</if>
+            <if test="status != null">status,</if>
+            <if test="version != null">version,</if>
+            <if test="remark != null">remark,</if>
+            <if test="createBy != null">create_by,</if>
+            create_time
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="unitName != null and unitName != ''">#{unitName},</if>
+            <if test="unitType != null and unitType != ''">#{unitType},</if>
+            <if test="channelNo != null">#{channelNo},</if>
+            <if test="status != null">#{status},</if>
+            <if test="version != null">#{version},</if>
+            <if test="remark != null">#{remark},</if>
+            <if test="createBy != null">#{createBy},</if>
+            sysdate()
+         </trim>
     </insert>
 
-    <update id="updateBasebandUnit" parameterType="com.ruoyi.system.domain.SysBasebandUnit">
+    <update id="updateSysBasebandUnit" parameterType="SysBasebandUnit">
         update sys_baseband_unit
-        <set>
-            <if test="unitName != null">unit_name = #{unitName},</if>
-            <if test="unitType != null">unit_type = #{unitType},</if>
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="unitName != null and unitName != ''">unit_name = #{unitName},</if>
+            <if test="unitType != null and unitType != ''">unit_type = #{unitType},</if>
             <if test="channelNo != null">channel_no = #{channelNo},</if>
             <if test="status != null">status = #{status},</if>
             <if test="version != null">version = #{version},</if>
             <if test="remark != null">remark = #{remark},</if>
             <if test="updateBy != null">update_by = #{updateBy},</if>
-            <if test="updateTime != null">update_time = #{updateTime},</if>
-        </set>
+            update_time = sysdate()
+        </trim>
         where unit_id = #{unitId}
     </update>
 
-    <delete id="deleteBasebandUnitById" parameterType="Long">
+    <delete id="deleteSysBasebandUnitByUnitId" parameterType="Long">
         delete from sys_baseband_unit where unit_id = #{unitId}
     </delete>
 
-    <delete id="deleteBasebandUnitByIds" parameterType="Long">
-        delete from sys_baseband_unit where unit_id in
-        <foreach collection="array" item="unitId" open="(" close=")" separator=",">
+    <delete id="deleteSysBasebandUnitByUnitIds" parameterType="String">
+        delete from sys_baseband_unit where unit_id in 
+        <foreach item="unitId" collection="array" open="(" separator="," close=")">
             #{unitId}
         </foreach>
     </delete>
-
-    <select id="checkUnitNameUnique" resultMap="SysBasebandUnitResult">
-        <include refid="selectBasebandUnitVo"/>
-        where unit_name = #{unitName}
-        limit 1
-    </select>
-
 </mapper>
-

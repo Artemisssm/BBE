@@ -5,43 +5,57 @@ import com.ruoyi.system.domain.SysBasebandUnit;
 
 /**
  * 基带单元Service接口
+ * 
+ * @author ruoyi
+ * @date 2025-11-27
  */
-public interface ISysBasebandUnitService
+public interface ISysBasebandUnitService 
 {
     /**
-     * 查询列表
+     * 查询基带单元
+     * 
+     * @param unitId 基带单元主键
+     * @return 基带单元
      */
-    public List<SysBasebandUnit> selectBasebandUnitList(SysBasebandUnit unit);
+    public SysBasebandUnit selectSysBasebandUnitByUnitId(Long unitId);
 
     /**
-     * 通过ID查询
+     * 查询基带单元列表
+     * 
+     * @param sysBasebandUnit 基带单元
+     * @return 基带单元集合
      */
-    public SysBasebandUnit selectBasebandUnitById(Long unitId);
+    public List<SysBasebandUnit> selectSysBasebandUnitList(SysBasebandUnit sysBasebandUnit);
 
     /**
-     * 新增
+     * 新增基带单元
+     * 
+     * @param sysBasebandUnit 基带单元
+     * @return 结果
      */
-    public int insertBasebandUnit(SysBasebandUnit unit);
+    public int insertSysBasebandUnit(SysBasebandUnit sysBasebandUnit);
 
     /**
-     * 修改
+     * 修改基带单元
+     * 
+     * @param sysBasebandUnit 基带单元
+     * @return 结果
      */
-    public int updateBasebandUnit(SysBasebandUnit unit);
+    public int updateSysBasebandUnit(SysBasebandUnit sysBasebandUnit);
 
     /**
-     * 批量删除
+     * 批量删除基带单元
+     * 
+     * @param unitIds 需要删除的基带单元主键集合
+     * @return 结果
      */
-    public int deleteBasebandUnitByIds(Long[] unitIds);
+    public int deleteSysBasebandUnitByUnitIds(Long[] unitIds);
 
     /**
-     * 单个删除
+     * 删除基带单元信息
+     * 
+     * @param unitId 基带单元主键
+     * @return 结果
      */
-    public int deleteBasebandUnitById(Long unitId);
-
-    /**
-     * 校验名称唯一
-     */
-    public boolean checkUnitNameUnique(SysBasebandUnit unit);
+    public int deleteSysBasebandUnitByUnitId(Long unitId);
 }
-
-

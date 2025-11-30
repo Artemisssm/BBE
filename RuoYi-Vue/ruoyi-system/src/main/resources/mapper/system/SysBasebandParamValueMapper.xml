@@ -1,68 +1,89 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper
-        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
-        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.ruoyi.system.mapper.SysBasebandParamValueMapper">
-
-    <resultMap id="BasebandParamVoResult" type="com.ruoyi.system.domain.vo.BasebandParamVo">
-        <id     property="paramId"       column="param_id"/>
-        <result property="unitType"      column="unit_type"/>
-        <result property="paramCode"     column="param_code"/>
-        <result property="paramName"     column="param_name"/>
-        <result property="valueType"     column="value_type"/>
-        <result property="enumOptions"   column="enum_options"/>
-        <result property="minValue"      column="min_value"/>
-        <result property="maxValue"      column="max_value"/>
-        <result property="scaleFactor"   column="scale_factor"/>
-        <result property="bitLength"     column="bit_length"/>
-        <result property="hardwareOrder" column="hardware_order"/>
-        <result property="defaultValue"  column="default_value"/>
-        <result property="remark"        column="remark"/>
-        <result property="valueId"       column="value_id"/>
-        <result property="unitId"        column="unit_id"/>
-        <result property="rawValue"      column="raw_value"/>
-        <result property="uintValue"     column="uint_value"/>
+    
+    <resultMap type="SysBasebandParamValue" id="SysBasebandParamValueResult">
+        <result property="valueId"    column="value_id"    />
+        <result property="unitId"    column="unit_id"    />
+        <result property="paramId"    column="param_id"    />
+        <result property="rawValue"    column="raw_value"    />
+        <result property="uintValue"    column="uint_value"    />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateTime"    column="update_time"    />
     </resultMap>
 
-    <select id="selectParamVoByUnitId" resultMap="BasebandParamVoResult">
-        select
-            d.param_id,
-            d.unit_type,
-            d.param_code,
-            d.param_name,
-            d.value_type,
-            d.enum_options,
-            d.min_value,
-            d.max_value,
-            d.scale_factor,
-            d.bit_length,
-            d.hardware_order,
-            d.default_value,
-            d.remark,
-            v.value_id,
-            v.unit_id,
-            v.raw_value,
-            v.uint_value
-        from sys_baseband_unit u
-        join sys_baseband_param_def d on d.unit_type = u.unit_type
-        left join sys_baseband_param_value v on v.param_id = d.param_id and v.unit_id = u.unit_id
-        where u.unit_id = #{unitId}
-        order by d.hardware_order
+    <sql id="selectSysBasebandParamValueVo">
+        select value_id, unit_id, param_id, raw_value, uint_value, update_by, update_time from sys_baseband_param_value
+    </sql>
+
+    <select id="selectSysBasebandParamValueByValueId" parameterType="Long" resultMap="SysBasebandParamValueResult">
+        <include refid="selectSysBasebandParamValueVo"/>
+        where value_id = #{valueId}
     </select>
 
-    <insert id="batchUpsert">
+    <select id="selectSysBasebandParamValueByUnitAndParam" resultMap="SysBasebandParamValueResult">
+        <include refid="selectSysBasebandParamValueVo"/>
+        where unit_id = #{unitId} and param_id = #{paramId}
+    </select>
+
+    <select id="selectSysBasebandParamValueByUnitId" parameterType="Long" resultMap="SysBasebandParamValueResult">
+        <include refid="selectSysBasebandParamValueVo"/>
+        where unit_id = #{unitId}
+    </select>
+        
+    <insert id="insertSysBasebandParamValue" parameterType="SysBasebandParamValue" useGeneratedKeys="true" keyProperty="valueId">
         insert into sys_baseband_param_value
-            (unit_id, param_id, raw_value, uint_value, update_by, update_time)
-        values
-        <foreach collection="list" item="item" separator=",">
-            (#{item.unitId}, #{item.paramId}, #{item.rawValue}, #{item.uintValue}, #{item.updateBy}, #{item.updateTime})
-        </foreach>
-        on duplicate key update
-            raw_value = values(raw_value),
-            uint_value = values(uint_value),
-            update_by = values(update_by),
-            update_time = values(update_time)
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="unitId != null">unit_id,</if>
+            <if test="paramId != null">param_id,</if>
+            <if test="rawValue != null and rawValue != ''">raw_value,</if>
+            <if test="uintValue != null">uint_value,</if>
+            <if test="updateBy != null">update_by,</if>
+            update_time
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="unitId != null">#{unitId},</if>
+            <if test="paramId != null">#{paramId},</if>
+            <if test="rawValue != null and rawValue != ''">#{rawValue},</if>
+            <if test="uintValue != null">#{uintValue},</if>
+            <if test="updateBy != null">#{updateBy},</if>
+            sysdate()
+         </trim>
     </insert>
 
-</mapper>
+    <update id="updateSysBasebandParamValue" parameterType="SysBasebandParamValue">
+        update sys_baseband_param_value
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="rawValue != null and rawValue != ''">raw_value = #{rawValue},</if>
+            <if test="uintValue != null">uint_value = #{uintValue},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            update_time = sysdate()
+        </trim>
+        where value_id = #{valueId}
+    </update>
 
+    <delete id="deleteSysBasebandParamValueByValueId" parameterType="Long">
+        delete from sys_baseband_param_value where value_id = #{valueId}
+    </delete>
+
+    <delete id="deleteSysBasebandParamValueByUnitId" parameterType="Long">
+        delete from sys_baseband_param_value where unit_id = #{unitId}
+    </delete>
+
+    <select id="selectParamVoListByUnitId" parameterType="Long" resultType="com.ruoyi.system.domain.vo.BasebandParamVo">
+        SELECT 
+            d.param_id,
+            d.param_name,
+            d.param_code,
+            d.hardware_order,
+            d.bit_length,
+            v.uint_value
+        FROM sys_baseband_param_def d
+        INNER JOIN sys_baseband_unit u ON d.unit_type = u.unit_type
+        LEFT JOIN sys_baseband_param_value v ON v.param_id = d.param_id AND v.unit_id = u.unit_id
+        WHERE u.unit_id = #{unitId}
+        ORDER BY d.hardware_order
+    </select>
+</mapper>

@@ -5,66 +5,57 @@ import com.ruoyi.system.domain.SysBasebandUnit;
 
 /**
  * 基带单元Mapper接口
- *
- * @author
+ * 
+ * @author ruoyi
+ * @date 2025-11-27
  */
-public interface SysBasebandUnitMapper
+public interface SysBasebandUnitMapper 
 {
     /**
-     * 查询单元列表
-     *
-     * @param unit 查询条件
-     * @return 列表
+     * 查询基带单元
+     * 
+     * @param unitId 基带单元主键
+     * @return 基带单元
      */
-    public List<SysBasebandUnit> selectBasebandUnitList(SysBasebandUnit unit);
+    public SysBasebandUnit selectSysBasebandUnitByUnitId(Long unitId);
 
     /**
-     * 按ID查询
-     *
-     * @param unitId ID
-     * @return 单元
+     * 查询基带单元列表
+     * 
+     * @param sysBasebandUnit 基带单元
+     * @return 基带单元集合
      */
-    public SysBasebandUnit selectBasebandUnitById(Long unitId);
+    public List<SysBasebandUnit> selectSysBasebandUnitList(SysBasebandUnit sysBasebandUnit);
 
     /**
-     * 新增
-     *
-     * @param unit 单元
+     * 新增基带单元
+     * 
+     * @param sysBasebandUnit 基带单元
      * @return 结果
      */
-    public int insertBasebandUnit(SysBasebandUnit unit);
+    public int insertSysBasebandUnit(SysBasebandUnit sysBasebandUnit);
 
     /**
-     * 修改
-     *
-     * @param unit 单元
+     * 修改基带单元
+     * 
+     * @param sysBasebandUnit 基带单元
      * @return 结果
      */
-    public int updateBasebandUnit(SysBasebandUnit unit);
+    public int updateSysBasebandUnit(SysBasebandUnit sysBasebandUnit);
 
     /**
-     * 批量删除
-     *
-     * @param unitIds id数组
+     * 删除基带单元
+     * 
+     * @param unitId 基带单元主键
      * @return 结果
      */
-    public int deleteBasebandUnitByIds(Long[] unitIds);
+    public int deleteSysBasebandUnitByUnitId(Long unitId);
 
     /**
-     * 删除
-     *
-     * @param unitId id
+     * 批量删除基带单元
+     * 
+     * @param unitIds 需要删除的数据主键集合
      * @return 结果
      */
-    public int deleteBasebandUnitById(Long unitId);
-
-    /**
-     * 按名称唯一性检查
-     *
-     * @param unitName 名称
-     * @return 记录
-     */
-    public SysBasebandUnit checkUnitNameUnique(String unitName);
+    public int deleteSysBasebandUnitByUnitIds(Long[] unitIds);
 }
-
-

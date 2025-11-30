@@ -1,162 +1,205 @@
 package com.ruoyi.system.service.impl;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.Date;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import com.ruoyi.common.exception.ServiceException;
+import org.springframework.transaction.annotation.Transactional;
 import com.ruoyi.common.utils.DateUtils;
-import com.ruoyi.common.utils.StringUtils;
+import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.system.domain.SysBasebandParamDef;
 import com.ruoyi.system.domain.SysBasebandParamValue;
 import com.ruoyi.system.domain.SysBasebandUnit;
-import com.ruoyi.system.domain.dto.BasebandParamValueDto;
-import com.ruoyi.system.domain.vo.BasebandParamVo;
 import com.ruoyi.system.mapper.SysBasebandParamDefMapper;
 import com.ruoyi.system.mapper.SysBasebandParamValueMapper;
 import com.ruoyi.system.mapper.SysBasebandUnitMapper;
 import com.ruoyi.system.service.ISysBasebandParamValueService;
 
 /**
- * 参数值服务实现
+ * 基带参数取值Service业务层处理
+ * 
+ * @author ruoyi
+ * @date 2025-11-27
  */
 @Service
-public class SysBasebandParamValueServiceImpl implements ISysBasebandParamValueService
+public class SysBasebandParamValueServiceImpl implements ISysBasebandParamValueService 
 {
+    private static final Logger log = LoggerFactory.getLogger(SysBasebandParamValueServiceImpl.class);
+
     @Autowired
-    private SysBasebandUnitMapper basebandUnitMapper;
+    private SysBasebandParamValueMapper paramValueMapper;
 
     @Autowired
     private SysBasebandParamDefMapper paramDefMapper;
 
     @Autowired
-    private SysBasebandParamValueMapper paramValueMapper;
+    private SysBasebandUnitMapper unitMapper;
 
+    /**
+     * 根据单元ID获取参数配置列表（包含参数定义信息）
+     * 
+     * @param unitId 单元ID
+     * @return 参数配置列表
+     */
     @Override
-    public List<BasebandParamVo> selectParamVoByUnit(Long unitId)
+    public List<Map<String, Object>> selectParamValueListByUnitId(Long unitId)
     {
-        return paramValueMapper.selectParamVoByUnitId(unitId);
-    }
-
-    @Override
-    public void saveParamValues(Long unitId, List<BasebandParamValueDto> values, String operator)
-    {
-        if (StringUtils.isEmpty(values))
-        {
-            throw new ServiceException("参数列表不能为空");
+        List<Map<String, Object>> resultList = new ArrayList<>();
+        
+        // 获取单元信息
+        SysBasebandUnit unit = unitMapper.selectSysBasebandUnitByUnitId(unitId);
+        if (unit == null) {
+            return resultList;
         }
-        SysBasebandUnit unit = basebandUnitMapper.selectBasebandUnitById(unitId);
-        if (unit == null)
-        {
-            throw new ServiceException("单元不存在");
+        
+        // 获取该单元类型的所有参数定义
+        List<SysBasebandParamDef> paramDefs = paramDefMapper.selectSysBasebandParamDefByUnitType(unit.getUnitType());
+        
+        // 获取该单元已配置的参数值
+        List<SysBasebandParamValue> paramValues = paramValueMapper.selectSysBasebandParamValueByUnitId(unitId);
+        Map<Long, SysBasebandParamValue> valueMap = new HashMap<>();
+        for (SysBasebandParamValue value : paramValues) {
+            valueMap.put(value.getParamId(), value);
         }
-        List<SysBasebandParamDef> defs = paramDefMapper.selectBasebandParamDefList(buildDefQuery(unit.getUnitType()));
-        Map<Long, SysBasebandParamDef> defMap = defs.stream().collect(Collectors.toMap(SysBasebandParamDef::getParamId, d -> d));
-        Date now = DateUtils.getNowDate();
-        List<SysBasebandParamValue> entities = values.stream().map(dto -> {
-            SysBasebandParamDef def = defMap.get(dto.getParamId());
-            if (def == null)
-            {
-                throw new ServiceException("参数不存在或不属于该单元: " + dto.getParamId());
+        
+        // 组合参数定义和参数值
+        for (SysBasebandParamDef def : paramDefs) {
+            Map<String, Object> item = new HashMap<>();
+            item.put("paramId", def.getParamId());
+            item.put("paramCode", def.getParamCode());
+            item.put("paramName", def.getParamName());
+            item.put("valueType", def.getValueType());
+            item.put("enumOptions", def.getEnumOptions());
+            item.put("minValue", def.getMinValue());
+            item.put("maxValue", def.getMaxValue());
+            item.put("scaleFactor", def.getScaleFactor());
+            item.put("bitLength", def.getBitLength());
+            item.put("hardwareOrder", def.getHardwareOrder());
+            item.put("defaultValue", def.getDefaultValue());
+            
+            // 如果有配置值，使用配置值；否则使用默认值
+            SysBasebandParamValue value = valueMap.get(def.getParamId());
+            if (value != null) {
+                item.put("rawValue", value.getRawValue());
+                item.put("valueId", value.getValueId());
+            } else {
+                item.put("rawValue", def.getDefaultValue());
+                item.put("valueId", null);
             }
-            long uintVal = convertToUint(def, dto.getRawValue());
-            SysBasebandParamValue entity = new SysBasebandParamValue();
-            entity.setUnitId(unitId);
-            entity.setParamId(dto.getParamId());
-            entity.setRawValue(dto.getRawValue());
-            entity.setUintValue(uintVal);
-            entity.setUpdateBy(operator);
-            entity.setUpdateTime(now);
-            return entity;
-        }).collect(Collectors.toList());
-        paramValueMapper.batchUpsert(entities);
-    }
-
-    private SysBasebandParamDef buildDefQuery(String unitType)
-    {
-        SysBasebandParamDef query = new SysBasebandParamDef();
-        query.setUnitType(unitType);
-        return query;
-    }
-
-    private long convertToUint(SysBasebandParamDef def, String rawValue)
-    {
-        if (StringUtils.isEmpty(rawValue))
-        {
-            throw new ServiceException(def.getParamName() + " 的值不能为空");
+            
+            resultList.add(item);
         }
-        String type = def.getValueType();
-        long result;
-        switch (type)
-        {
-            case "FLOAT":
-                result = convertFloat(def, rawValue);
-                break;
-            case "UINT":
-                result = convertUint(def, rawValue);
-                break;
-            case "ENUM":
-            case "SWITCH":
-                result = convertEnum(rawValue);
-                break;
-            default:
-                throw new ServiceException("未知的值类型: " + type);
+        
+        return resultList;
+    }
+
+    /**
+     * 保存单元的参数配置
+     * 
+     * @param unitId 单元ID
+     * @param paramValues 参数值列表
+     * @return 结果
+     */
+    @Override
+    @Transactional
+    public int saveParamValues(Long unitId, List<Map<String, Object>> paramValues)
+    {
+        String username = SecurityUtils.getUsername();
+        int count = 0;
+        
+        for (Map<String, Object> item : paramValues) {
+            Long paramId = Long.valueOf(item.get("paramId").toString());
+            String rawValue = item.get("rawValue").toString();
+            
+            // 获取参数定义
+            SysBasebandParamDef paramDef = paramDefMapper.selectSysBasebandParamDefByParamId(paramId);
+            if (paramDef == null) {
+                continue;
+            }
+            
+            // 计算uint_value
+            Long uintValue = calculateUintValue(rawValue, paramDef);
+            
+            // 查询是否已存在
+            SysBasebandParamValue existValue = paramValueMapper.selectSysBasebandParamValueByUnitAndParam(unitId, paramId);
+            
+            if (existValue != null) {
+                // 更新
+                existValue.setRawValue(rawValue);
+                existValue.setUintValue(uintValue);
+                existValue.setUpdateBy(username);
+                existValue.setUpdateTime(DateUtils.getNowDate());
+                count += paramValueMapper.updateSysBasebandParamValue(existValue);
+            } else {
+                // 新增
+                SysBasebandParamValue newValue = new SysBasebandParamValue();
+                newValue.setUnitId(unitId);
+                newValue.setParamId(paramId);
+                newValue.setRawValue(rawValue);
+                newValue.setUintValue(uintValue);
+                newValue.setUpdateBy(username);
+                newValue.setUpdateTime(DateUtils.getNowDate());
+                count += paramValueMapper.insertSysBasebandParamValue(newValue);
+            }
         }
-        validateRange(def, result);
-        return result;
+        
+        return count;
     }
 
-    private long convertFloat(SysBasebandParamDef def, String rawValue)
-    {
-        BigDecimal raw = new BigDecimal(rawValue);
-        validateDecimalRange(def, raw);
-        int scaleFactor = def.getScaleFactor() == null ? 1 : def.getScaleFactor();
-        BigDecimal scaled = raw.multiply(BigDecimal.valueOf(scaleFactor));
-        return scaled.setScale(0, RoundingMode.HALF_UP).longValueExact();
-    }
+    @Autowired
+    private com.ruoyi.system.service.IBasebandDispatchService dispatchService;
 
-    private long convertUint(SysBasebandParamDef def, String rawValue)
+    /**
+     * 下发参数到硬件设备
+     * 
+     * @param unitId 单元ID
+     * @return 结果
+     */
+    @Override
+    public int dispatchParams(Long unitId)
     {
-        BigDecimal raw = new BigDecimal(rawValue);
-        validateDecimalRange(def, raw);
-        return raw.longValueExact();
-    }
-
-    private long convertEnum(String rawValue)
-    {
-        return Long.parseLong(rawValue);
-    }
-
-    private void validateDecimalRange(SysBasebandParamDef def, BigDecimal raw)
-    {
-        if (Objects.nonNull(def.getMinValue()) && raw.compareTo(def.getMinValue()) < 0)
-        {
-            throw new ServiceException(def.getParamName() + " 小于最小值");
-        }
-        if (Objects.nonNull(def.getMaxValue()) && raw.compareTo(def.getMaxValue()) > 0)
-        {
-            throw new ServiceException(def.getParamName() + " 大于最大值");
+        try {
+            String username = SecurityUtils.getUsername();
+            dispatchService.dispatch(unitId, username, "MANUAL");
+            return 1;
+        } catch (Exception e) {
+            log.error("下发参数失败: unitId={}", unitId, e);
+            throw e;
         }
     }
 
-    private void validateRange(SysBasebandParamDef def, long value)
+    /**
+     * 计算uint_value
+     * 根据参数类型和缩放因子，将原始值转换为无符号整数
+     */
+    private Long calculateUintValue(String rawValue, SysBasebandParamDef paramDef)
     {
-        if (def.getBitLength() == null)
-        {
-            return;
-        }
-        int bitLen = def.getBitLength();
-        long max = bitLen >= 63 ? Long.MAX_VALUE : (1L << bitLen) - 1;
-        if (value < 0 || value > max)
-        {
-            throw new ServiceException(def.getParamName() + " 超出位宽范围");
+        try {
+            String valueType = paramDef.getValueType();
+            Integer scaleFactor = paramDef.getScaleFactor() != null ? paramDef.getScaleFactor() : 1;
+            
+            if ("ENUM".equals(valueType) || "SWITCH".equals(valueType)) {
+                // 枚举和开关类型，直接转换
+                return Long.valueOf(rawValue);
+            } else if ("UINT".equals(valueType)) {
+                // 无符号整数，乘以缩放因子
+                return Long.valueOf(rawValue) * scaleFactor;
+            } else if ("FLOAT".equals(valueType)) {
+                // 浮点数，乘以缩放因子后转为整数
+                BigDecimal decimal = new BigDecimal(rawValue);
+                BigDecimal scaled = decimal.multiply(new BigDecimal(scaleFactor));
+                return scaled.longValue();
+            }
+            
+            return Long.valueOf(rawValue);
+        } catch (Exception e) {
+            log.error("计算uint_value失败: rawValue={}, paramDef={}", rawValue, paramDef, e);
+            return 0L;
         }
     }
 }
-
-

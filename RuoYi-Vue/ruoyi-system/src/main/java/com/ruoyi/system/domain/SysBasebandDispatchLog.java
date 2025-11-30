@@ -1,148 +1,140 @@
 package com.ruoyi.system.domain;
 
 import java.util.Date;
+import com.ruoyi.common.core.domain.BaseEntity;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
-import com.ruoyi.common.annotation.Excel;
-import com.ruoyi.common.core.domain.BaseEntity;
 
 /**
- * 基带下发日志表 sys_baseband_dispatch_log
+ * 基带参数下发日志对象 sys_baseband_dispatch_log
+ * 
+ * @author ruoyi
+ * @date 2025-11-27
  */
 public class SysBasebandDispatchLog extends BaseEntity
 {
     private static final long serialVersionUID = 1L;
 
-    /** 日志ID */
-    @Excel(name = "日志ID", cellType = Excel.ColumnType.NUMERIC)
+    /** 日志主键 */
     private Long logId;
 
-    /** 单元ID */
-    @Excel(name = "单元ID")
+    /** 下发单元 */
     private Long unitId;
 
-    /** 类型 */
-    @Excel(name = "下发类型")
+    /** 下发类型 MANUAL/AUTO */
     private String dispatchType;
 
     /** 组播IP */
-    @Excel(name = "组播IP")
     private String multicastIp;
 
-    /** 端口 */
-    @Excel(name = "组播端口")
+    /** 组播端口 */
     private Integer multicastPort;
 
     /** 报文长度 */
-    @Excel(name = "报文长度")
     private Integer packetLen;
 
-    /** 结果 0成功 1失败 */
-    @Excel(name = "结果", readConverterExp = "0=成功,1=失败")
+    /** 结果状态 0成功 1失败 */
     private String resultStatus;
 
-    /** 结果描述 */
-    @Excel(name = "描述")
+    /** 结果消息 */
     private String resultMsg;
 
     /** 发送时间 */
-    @Excel(name = "发送时间", width = 30, dateFormat = "yyyy-MM-dd HH:mm:ss")
     private Date sendTime;
 
-    public Long getLogId()
-    {
-        return logId;
-    }
-
-    public void setLogId(Long logId)
+    public void setLogId(Long logId) 
     {
         this.logId = logId;
     }
 
-    public Long getUnitId()
+    public Long getLogId() 
     {
-        return unitId;
+        return logId;
     }
 
-    public void setUnitId(Long unitId)
+    public void setUnitId(Long unitId) 
     {
         this.unitId = unitId;
     }
 
-    public String getDispatchType()
+    public Long getUnitId() 
     {
-        return dispatchType;
+        return unitId;
     }
 
-    public void setDispatchType(String dispatchType)
+    public void setDispatchType(String dispatchType) 
     {
         this.dispatchType = dispatchType;
     }
 
-    public String getMulticastIp()
+    public String getDispatchType() 
     {
-        return multicastIp;
+        return dispatchType;
     }
 
-    public void setMulticastIp(String multicastIp)
+    public void setMulticastIp(String multicastIp) 
     {
         this.multicastIp = multicastIp;
     }
 
-    public Integer getMulticastPort()
+    public String getMulticastIp() 
     {
-        return multicastPort;
+        return multicastIp;
     }
 
-    public void setMulticastPort(Integer multicastPort)
+    public void setMulticastPort(Integer multicastPort) 
     {
         this.multicastPort = multicastPort;
     }
 
-    public Integer getPacketLen()
+    public Integer getMulticastPort() 
     {
-        return packetLen;
+        return multicastPort;
     }
 
-    public void setPacketLen(Integer packetLen)
+    public void setPacketLen(Integer packetLen) 
     {
         this.packetLen = packetLen;
     }
 
-    public String getResultStatus()
+    public Integer getPacketLen() 
     {
-        return resultStatus;
+        return packetLen;
     }
 
-    public void setResultStatus(String resultStatus)
+    public void setResultStatus(String resultStatus) 
     {
         this.resultStatus = resultStatus;
     }
 
-    public String getResultMsg()
+    public String getResultStatus() 
     {
-        return resultMsg;
+        return resultStatus;
     }
 
-    public void setResultMsg(String resultMsg)
+    public void setResultMsg(String resultMsg) 
     {
         this.resultMsg = resultMsg;
     }
 
-    public Date getSendTime()
+    public String getResultMsg() 
     {
-        return sendTime;
+        return resultMsg;
     }
 
-    public void setSendTime(Date sendTime)
+    public void setSendTime(Date sendTime) 
     {
         this.sendTime = sendTime;
     }
 
-    @Override
-    public String toString()
+    public Date getSendTime() 
     {
-        return new ToStringBuilder(this, ToStringStyle.MULTI_LINE_STYLE)
+        return sendTime;
+    }
+
+    @Override
+    public String toString() {
+        return new ToStringBuilder(this,ToStringStyle.MULTI_LINE_STYLE)
             .append("logId", getLogId())
             .append("unitId", getUnitId())
             .append("dispatchType", getDispatchType())
@@ -157,5 +149,3 @@ public class SysBasebandDispatchLog extends BaseEntity
             .toString();
     }
 }
-
-

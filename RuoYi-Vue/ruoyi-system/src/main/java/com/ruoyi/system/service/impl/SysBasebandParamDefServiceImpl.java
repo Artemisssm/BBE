@@ -1,70 +1,95 @@
 package com.ruoyi.system.service.impl;
 
 import java.util.List;
+import com.ruoyi.common.utils.DateUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import com.ruoyi.common.constant.UserConstants;
-import com.ruoyi.common.utils.StringUtils;
-import com.ruoyi.system.domain.SysBasebandParamDef;
 import com.ruoyi.system.mapper.SysBasebandParamDefMapper;
+import com.ruoyi.system.domain.SysBasebandParamDef;
 import com.ruoyi.system.service.ISysBasebandParamDefService;
 
 /**
- * 基带参数定义Service业务层
+ * 基带参数定义Service业务层处理
+ * 
+ * @author ruoyi
+ * @date 2025-11-27
  */
 @Service
-public class SysBasebandParamDefServiceImpl implements ISysBasebandParamDefService
+public class SysBasebandParamDefServiceImpl implements ISysBasebandParamDefService 
 {
     @Autowired
-    private SysBasebandParamDefMapper paramDefMapper;
+    private SysBasebandParamDefMapper sysBasebandParamDefMapper;
 
+    /**
+     * 查询基带参数定义
+     * 
+     * @param paramId 基带参数定义主键
+     * @return 基带参数定义
+     */
     @Override
-    public List<SysBasebandParamDef> selectBasebandParamDefList(SysBasebandParamDef paramDef)
+    public SysBasebandParamDef selectSysBasebandParamDefByParamId(Long paramId)
     {
-        return paramDefMapper.selectBasebandParamDefList(paramDef);
+        return sysBasebandParamDefMapper.selectSysBasebandParamDefByParamId(paramId);
     }
 
+    /**
+     * 查询基带参数定义列表
+     * 
+     * @param sysBasebandParamDef 基带参数定义
+     * @return 基带参数定义
+     */
     @Override
-    public SysBasebandParamDef selectBasebandParamDefById(Long paramId)
+    public List<SysBasebandParamDef> selectSysBasebandParamDefList(SysBasebandParamDef sysBasebandParamDef)
     {
-        return paramDefMapper.selectBasebandParamDefById(paramId);
+        return sysBasebandParamDefMapper.selectSysBasebandParamDefList(sysBasebandParamDef);
     }
 
+    /**
+     * 新增基带参数定义
+     * 
+     * @param sysBasebandParamDef 基带参数定义
+     * @return 结果
+     */
     @Override
-    public int insertBasebandParamDef(SysBasebandParamDef paramDef)
+    public int insertSysBasebandParamDef(SysBasebandParamDef sysBasebandParamDef)
     {
-        return paramDefMapper.insertBasebandParamDef(paramDef);
+        sysBasebandParamDef.setCreateTime(DateUtils.getNowDate());
+        return sysBasebandParamDefMapper.insertSysBasebandParamDef(sysBasebandParamDef);
     }
 
+    /**
+     * 修改基带参数定义
+     * 
+     * @param sysBasebandParamDef 基带参数定义
+     * @return 结果
+     */
     @Override
-    public int updateBasebandParamDef(SysBasebandParamDef paramDef)
+    public int updateSysBasebandParamDef(SysBasebandParamDef sysBasebandParamDef)
     {
-        return paramDefMapper.updateBasebandParamDef(paramDef);
+        return sysBasebandParamDefMapper.updateSysBasebandParamDef(sysBasebandParamDef);
     }
 
+    /**
+     * 批量删除基带参数定义
+     * 
+     * @param paramIds 需要删除的基带参数定义主键
+     * @return 结果
+     */
     @Override
-    public int deleteBasebandParamDefByIds(Long[] paramIds)
+    public int deleteSysBasebandParamDefByParamIds(Long[] paramIds)
     {
-        return paramDefMapper.deleteBasebandParamDefByIds(paramIds);
+        return sysBasebandParamDefMapper.deleteSysBasebandParamDefByParamIds(paramIds);
     }
 
+    /**
+     * 删除基带参数定义信息
+     * 
+     * @param paramId 基带参数定义主键
+     * @return 结果
+     */
     @Override
-    public int deleteBasebandParamDefById(Long paramId)
+    public int deleteSysBasebandParamDefByParamId(Long paramId)
     {
-        return paramDefMapper.deleteBasebandParamDefById(paramId);
-    }
-
-    @Override
-    public boolean checkParamCodeUnique(SysBasebandParamDef paramDef)
-    {
-        Long paramId = StringUtils.isNull(paramDef.getParamId()) ? -1L : paramDef.getParamId();
-        SysBasebandParamDef info = paramDefMapper.checkParamCodeUnique(paramDef.getParamCode());
-        if (StringUtils.isNotNull(info) && info.getParamId().longValue() != paramId.longValue())
-        {
-            return UserConstants.NOT_UNIQUE;
-        }
-        return UserConstants.UNIQUE;
+        return sysBasebandParamDefMapper.deleteSysBasebandParamDefByParamId(paramId);
     }
 }
-
-

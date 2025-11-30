@@ -1,23 +1,39 @@
 package com.ruoyi.system.service;
 
 import java.util.List;
-import com.ruoyi.system.domain.dto.BasebandParamValueDto;
-import com.ruoyi.system.domain.vo.BasebandParamVo;
+import java.util.Map;
+import com.ruoyi.system.domain.SysBasebandParamValue;
 
 /**
- * 参数值服务
+ * 基带参数取值Service接口
+ * 
+ * @author ruoyi
+ * @date 2025-11-27
  */
-public interface ISysBasebandParamValueService
+public interface ISysBasebandParamValueService 
 {
     /**
-     * 拉取指定单元下的参数定义及当前值
+     * 根据单元ID获取参数配置列表（包含参数定义信息）
+     * 
+     * @param unitId 单元ID
+     * @return 参数配置列表
      */
-    List<BasebandParamVo> selectParamVoByUnit(Long unitId);
+    public List<Map<String, Object>> selectParamValueListByUnitId(Long unitId);
 
     /**
-     * 批量保存参数值
+     * 保存单元的参数配置
+     * 
+     * @param unitId 单元ID
+     * @param paramValues 参数值列表
+     * @return 结果
      */
-    void saveParamValues(Long unitId, List<BasebandParamValueDto> values, String operator);
+    public int saveParamValues(Long unitId, List<Map<String, Object>> paramValues);
+
+    /**
+     * 下发参数到硬件设备
+     * 
+     * @param unitId 单元ID
+     * @return 结果
+     */
+    public int dispatchParams(Long unitId);
 }
-
-
