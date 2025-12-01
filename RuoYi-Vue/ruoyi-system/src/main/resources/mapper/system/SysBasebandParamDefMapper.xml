@@ -13,16 +13,16 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="enumOptions"    column="enum_options"    />
         <result property="minValue"    column="min_value"    />
         <result property="maxValue"    column="max_value"    />
-        <result property="scaleFactor"    column="scale_factor"    />
-        <result property="bitLength"    column="bit_length"    />
-        <result property="hardwareOrder"    column="hardware_order"    />
+        <result property="quantizationUnit"    column="quantization_unit"    />
+        <result property="bitWidthType"    column="bit_width_type"    />
+        <result property="stepValue"    column="step_value"    />
         <result property="defaultValue"    column="default_value"    />
         <result property="remark"    column="remark"    />
         <result property="createTime"    column="create_time"    />
     </resultMap>
 
     <sql id="selectSysBasebandParamDefVo">
-        select param_id, unit_type, param_code, param_name, value_type, enum_options, min_value, max_value, scale_factor, bit_length, hardware_order, default_value, remark, create_time from sys_baseband_param_def
+        select param_id, unit_type, param_code, param_name, value_type, enum_options, min_value, max_value, quantization_unit, bit_width_type, step_value, default_value, remark, create_time from sys_baseband_param_def
     </sql>
 
     <select id="selectSysBasebandParamDefList" parameterType="SysBasebandParamDef" resultMap="SysBasebandParamDefResult">
@@ -32,7 +32,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="paramCode != null  and paramCode != ''"> and param_code like concat('%', #{paramCode}, '%')</if>
             <if test="paramName != null  and paramName != ''"> and param_name like concat('%', #{paramName}, '%')</if>
         </where>
-        order by unit_type, hardware_order
+        order by unit_type, param_id
     </select>
     
     <select id="selectSysBasebandParamDefByParamId" parameterType="Long" resultMap="SysBasebandParamDefResult">
@@ -43,7 +43,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <select id="selectSysBasebandParamDefByUnitType" parameterType="String" resultMap="SysBasebandParamDefResult">
         <include refid="selectSysBasebandParamDefVo"/>
         where unit_type = #{unitType}
-        order by hardware_order
+        order by param_id
     </select>
         
     <insert id="insertSysBasebandParamDef" parameterType="SysBasebandParamDef" useGeneratedKeys="true" keyProperty="paramId">
@@ -56,9 +56,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="enumOptions != null">enum_options,</if>
             <if test="minValue != null">min_value,</if>
             <if test="maxValue != null">max_value,</if>
-            <if test="scaleFactor != null">scale_factor,</if>
-            <if test="bitLength != null">bit_length,</if>
-            <if test="hardwareOrder != null">hardware_order,</if>
+            <if test="quantizationUnit != null">quantization_unit,</if>
+            <if test="bitWidthType != null and bitWidthType != ''">bit_width_type,</if>
+            <if test="stepValue != null">step_value,</if>
             <if test="defaultValue != null">default_value,</if>
             <if test="remark != null">remark,</if>
             create_time
@@ -71,9 +71,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="enumOptions != null">#{enumOptions},</if>
             <if test="minValue != null">#{minValue},</if>
             <if test="maxValue != null">#{maxValue},</if>
-            <if test="scaleFactor != null">#{scaleFactor},</if>
-            <if test="bitLength != null">#{bitLength},</if>
-            <if test="hardwareOrder != null">#{hardwareOrder},</if>
+            <if test="quantizationUnit != null">#{quantizationUnit},</if>
+            <if test="bitWidthType != null and bitWidthType != ''">#{bitWidthType},</if>
+            <if test="stepValue != null">#{stepValue},</if>
             <if test="defaultValue != null">#{defaultValue},</if>
             <if test="remark != null">#{remark},</if>
             sysdate()
@@ -90,9 +90,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="enumOptions != null">enum_options = #{enumOptions},</if>
             <if test="minValue != null">min_value = #{minValue},</if>
             <if test="maxValue != null">max_value = #{maxValue},</if>
-            <if test="scaleFactor != null">scale_factor = #{scaleFactor},</if>
-            <if test="bitLength != null">bit_length = #{bitLength},</if>
-            <if test="hardwareOrder != null">hardware_order = #{hardwareOrder},</if>
+            <if test="quantizationUnit != null">quantization_unit = #{quantizationUnit},</if>
+            <if test="bitWidthType != null and bitWidthType != ''">bit_width_type = #{bitWidthType},</if>
+            <if test="stepValue != null">step_value = #{stepValue},</if>
             <if test="defaultValue != null">default_value = #{defaultValue},</if>
             <if test="remark != null">remark = #{remark},</if>
         </trim>

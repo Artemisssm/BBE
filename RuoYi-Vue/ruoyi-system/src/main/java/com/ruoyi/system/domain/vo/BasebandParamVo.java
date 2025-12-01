@@ -17,14 +17,11 @@ public class BasebandParamVo
     /** 参数编码 */
     private String paramCode;
 
-    /** 硬件顺序 */
-    private Integer hardwareOrder;
-
-    /** 转换后的无符号整型值 */
+    /** 转换后的无符号整型值（已除以量化单位） */
     private Long uintValue;
 
-    /** 位宽 */
-    private Integer bitLength;
+    /** 位宽类型 */
+    private String bitWidthType;
 
     public Long getParamId() {
         return paramId;
@@ -50,14 +47,6 @@ public class BasebandParamVo
         this.paramCode = paramCode;
     }
 
-    public Integer getHardwareOrder() {
-        return hardwareOrder;
-    }
-
-    public void setHardwareOrder(Integer hardwareOrder) {
-        this.hardwareOrder = hardwareOrder;
-    }
-
     public Long getUintValue() {
         return uintValue;
     }
@@ -66,11 +55,11 @@ public class BasebandParamVo
         this.uintValue = uintValue;
     }
 
-    public Integer getBitLength() {
-        return bitLength;
+    public String getBitWidthType() {
+        return bitWidthType;
     }
 
-    public void setBitLength(Integer bitLength) {
-        this.bitLength = bitLength;
+    public void setBitWidthType(String bitWidthType) {
+        this.bitWidthType = bitWidthType;
     }
 }

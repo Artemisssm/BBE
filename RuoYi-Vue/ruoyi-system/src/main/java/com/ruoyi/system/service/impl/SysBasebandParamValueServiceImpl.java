@@ -77,9 +77,9 @@ public class SysBasebandParamValueServiceImpl implements ISysBasebandParamValueS
             item.put("enumOptions", def.getEnumOptions());
             item.put("minValue", def.getMinValue());
             item.put("maxValue", def.getMaxValue());
-            item.put("scaleFactor", def.getScaleFactor());
-            item.put("bitLength", def.getBitLength());
-            item.put("hardwareOrder", def.getHardwareOrder());
+            item.put("quantizationUnit", def.getQuantizationUnit());
+            item.put("bitWidthType", def.getBitWidthType());
+            item.put("stepValue", def.getStepValue());
             item.put("defaultValue", def.getDefaultValue());
             
             // 如果有配置值，使用配置值；否则使用默认值
@@ -175,25 +175,26 @@ public class SysBasebandParamValueServiceImpl implements ISysBasebandParamValueS
 
     /**
      * 计算uint_value
-     * 根据参数类型和缩放因子，将原始值转换为无符号整数
+     * 根据参数类型和量化单位，将原始值转换为无符号整数
+     * 注意：下发给硬件时需要除以量化单位
      */
     private Long calculateUintValue(String rawValue, SysBasebandParamDef paramDef)
     {
         try {
             String valueType = paramDef.getValueType();
-            Integer scaleFactor = paramDef.getScaleFactor() != null ? paramDef.getScaleFactor() : 1;
+            Integer quantizationUnit = paramDef.getQuantizationUnit() != null ? paramDef.getQuantizationUnit() : 1;
             
             if ("ENUM".equals(valueType) || "SWITCH".equals(valueType)) {
                 // 枚举和开关类型，直接转换
                 return Long.valueOf(rawValue);
             } else if ("UINT".equals(valueType)) {
-                // 无符号整数，乘以缩放因子
-                return Long.valueOf(rawValue) * scaleFactor;
+                // 无符号整数，除以量化单位（下发给硬件的值）
+                return Long.valueOf(rawValue) / quantizationUnit;
             } else if ("FLOAT".equals(valueType)) {
-                // 浮点数，乘以缩放因子后转为整数
+                // 浮点数，除以量化单位后转为整数（下发给硬件的值）
                 BigDecimal decimal = new BigDecimal(rawValue);
-                BigDecimal scaled = decimal.multiply(new BigDecimal(scaleFactor));
-                return scaled.longValue();
+                BigDecimal quantized = decimal.divide(new BigDecimal(quantizationUnit), 0, BigDecimal.ROUND_HALF_UP);
+                return quantized.longValue();
             }
             
             return Long.valueOf(rawValue);

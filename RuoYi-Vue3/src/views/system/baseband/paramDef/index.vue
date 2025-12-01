@@ -75,9 +75,9 @@
       <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>
 
-    <el-table v-loading="loading" :data="paramDefList" @selection-change="handleSelectionChange" :row-class-name="tableRowClassName">
-      <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="序号" type="index" width="60" align="center" />
+    <el-table v-loading="loading" :data="paramDefList" @selection-change="handleSelectionChange" :row-class-name="tableRowClassName" class="param-def-table">
+      <el-table-column type="selection" width="50" align="center" fixed />
+      <el-table-column label="序号" type="index" width="60" align="center" fixed />
       <el-table-column label="单元类型" align="center" prop="unitType" width="100" fixed>
         <template #default="scope">
           <el-tag :type="getUnitTypeTag(scope.row.unitType)" size="small">
@@ -85,24 +85,24 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="参数编码" align="center" prop="paramCode" width="180" :show-overflow-tooltip="true">
+      <el-table-column label="参数编码" align="center" prop="paramCode" min-width="180" :show-overflow-tooltip="true">
         <template #default="scope">
           <span class="param-code-text">{{ scope.row.paramCode }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="参数名称" align="center" prop="paramName" width="180" :show-overflow-tooltip="true">
+      <el-table-column label="参数名称" align="center" prop="paramName" min-width="180" :show-overflow-tooltip="true">
         <template #default="scope">
           <span class="param-name-text">{{ scope.row.paramName }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="值类型" align="center" prop="valueType" width="110">
+      <el-table-column label="值类型" align="center" prop="valueType" width="100">
         <template #default="scope">
           <el-tag :type="getValueTypeTag(scope.row.valueType)" size="small">
             {{ getValueTypeName(scope.row.valueType) }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="取值范围" align="center" width="150">
+      <el-table-column label="取值范围" align="center" min-width="140">
         <template #default="scope">
           <span v-if="scope.row.valueType === 'ENUM'" class="range-text">
             {{ getEnumCount(scope.row.enumOptions) }}个选项
@@ -116,16 +116,17 @@
           <span v-else class="range-text">-</span>
         </template>
       </el-table-column>
-      <el-table-column label="硬件顺序" align="center" prop="hardwareOrder" width="100">
+      <el-table-column label="位宽类型" align="center" prop="bitWidthType" width="100">
         <template #default="scope">
-          <el-tag size="small" type="info">{{ scope.row.hardwareOrder }}</el-tag>
+          <el-tag size="small" type="warning" v-if="scope.row.bitWidthType">{{ scope.row.bitWidthType }}</el-tag>
+          <span v-else>-</span>
         </template>
       </el-table-column>
-      <el-table-column label="位宽" align="center" prop="bitLength" width="80" />
-      <el-table-column label="缩放" align="center" prop="scaleFactor" width="80" />
-      <el-table-column label="默认值" align="center" prop="defaultValue" width="100" :show-overflow-tooltip="true" />
-      <el-table-column label="备注" align="center" prop="remark" width="200" :show-overflow-tooltip="true" />
-      <el-table-column label="操作" width="160" align="center" class-name="small-padding fixed-width" fixed="right">
+      <el-table-column label="量化单位" align="center" prop="quantizationUnit" width="100" />
+      <el-table-column label="步进" align="center" prop="stepValue" width="80" />
+      <el-table-column label="默认值" align="center" prop="defaultValue" min-width="100" :show-overflow-tooltip="true" />
+      <el-table-column label="备注" align="center" prop="remark" min-width="150" :show-overflow-tooltip="true" />
+      <el-table-column label="操作" width="180" align="center" class-name="small-padding fixed-width" fixed="right">
         <template #default="scope">
           <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['system:basebandParam:edit']">修改</el-button>
           <el-button link type="danger" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['system:basebandParam:remove']">删除</el-button>
@@ -180,20 +181,28 @@
         </el-row>
         <el-row>
           <el-col :span="12">
-            <el-form-item label="缩放倍数" prop="scaleFactor">
-              <el-input-number v-model="form.scaleFactor" controls-position="right" :min="1" style="width: 100%" />
+            <el-form-item label="量化单位" prop="quantizationUnit">
+              <el-input-number v-model="form.quantizationUnit" controls-position="right" :min="1" style="width: 100%" placeholder="下发给硬件时除以此值" />
+              <div style="color: #909399; font-size: 12px; margin-top: 5px;">下发给硬件时需要除以此值</div>
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="位宽" prop="bitLength">
-              <el-input-number v-model="form.bitLength" controls-position="right" :min="1" style="width: 100%" />
+            <el-form-item label="位宽类型" prop="bitWidthType">
+              <el-select v-model="form.bitWidthType" placeholder="请选择位宽类型" style="width: 100%" @change="handleBitWidthTypeChange">
+                <el-option label="U8 (8位无符号)" value="U8" />
+                <el-option label="U16 (16位无符号)" value="U16" />
+                <el-option label="U32 (32位无符号)" value="U32" />
+                <el-option label="I8 (8位有符号)" value="I8" />
+                <el-option label="I16 (16位有符号)" value="I16" />
+                <el-option label="I32 (32位有符号)" value="I32" />
+              </el-select>
             </el-form-item>
           </el-col>
         </el-row>
         <el-row>
           <el-col :span="12">
-            <el-form-item label="硬件顺序" prop="hardwareOrder">
-              <el-input-number v-model="form.hardwareOrder" controls-position="right" :min="0" style="width: 100%" />
+            <el-form-item label="步进值" prop="stepValue">
+              <el-input-number v-model="form.stepValue" controls-position="right" :min="0" :step="0.01" :precision="2" style="width: 100%" placeholder="参数调整步进" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -219,12 +228,34 @@
         <el-row v-if="form.valueType === 'UINT' || form.valueType === 'FLOAT'">
           <el-col :span="12">
             <el-form-item label="最小值" prop="minValue">
-              <el-input-number v-model="form.minValue" controls-position="right" style="width: 100%" :precision="form.valueType === 'FLOAT' ? 2 : 0" />
+              <el-input-number 
+                v-model="form.minValue" 
+                controls-position="right" 
+                style="width: 100%" 
+                :precision="form.valueType === 'FLOAT' ? 2 : 0"
+                :min="bitWidthRange.min"
+                :max="bitWidthRange.max"
+                @change="handleMinValueChange"
+              />
+              <div style="color: #909399; font-size: 12px; margin-top: 5px;">
+                {{ bitWidthRange.label }}
+              </div>
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="最大值" prop="maxValue">
-              <el-input-number v-model="form.maxValue" controls-position="right" style="width: 100%" :precision="form.valueType === 'FLOAT' ? 2 : 0" />
+              <el-input-number 
+                v-model="form.maxValue" 
+                controls-position="right" 
+                style="width: 100%" 
+                :precision="form.valueType === 'FLOAT' ? 2 : 0"
+                :min="bitWidthRange.min"
+                :max="bitWidthRange.max"
+                @change="handleMaxValueChange"
+              />
+              <div style="color: #909399; font-size: 12px; margin-top: 5px;">
+                {{ bitWidthRange.label }}
+              </div>
             </el-form-item>
           </el-col>
         </el-row>
@@ -265,7 +296,7 @@ const data = reactive({
   form: {},
   queryParams: {
     pageNum: 1,
-    pageSize: 10,
+    pageSize: 50,
     paramCode: undefined,
     paramName: undefined,
     unitType: undefined
@@ -281,13 +312,33 @@ const data = reactive({
       { max: 64, message: "参数名称长度不能超过64个字符", trigger: "blur" }
     ],
     valueType: [{ required: true, message: "值类型不能为空", trigger: "change" }],
-    scaleFactor: [{ required: true, message: "缩放倍数不能为空", trigger: "blur" }],
-    bitLength: [{ required: true, message: "位宽不能为空", trigger: "blur" }],
-    hardwareOrder: [{ required: true, message: "硬件顺序不能为空", trigger: "blur" }]
+    quantizationUnit: [{ required: false, message: "量化单位不能为空", trigger: "blur" }],
+    bitWidthType: [{ required: false, message: "位宽类型不能为空", trigger: "change" }],
+    stepValue: [{ required: false, message: "步进值不能为空", trigger: "blur" }]
   }
 })
 
 const { queryParams, form, rules } = toRefs(data)
+
+/** 位宽类型的取值范围 */
+const bitWidthRanges = {
+  'U8': { min: 0, max: 255, label: '范围: 0 ~ 255' },
+  'U16': { min: 0, max: 65535, label: '范围: 0 ~ 65,535' },
+  'U32': { min: 0, max: 4294967295, label: '范围: 0 ~ 4,294,967,295' },
+  'I8': { min: -128, max: 127, label: '范围: -128 ~ 127' },
+  'I16': { min: -32768, max: 32767, label: '范围: -32,768 ~ 32,767' },
+  'I32': { min: -2147483648, max: 2147483647, label: '范围: -2,147,483,648 ~ 2,147,483,647' }
+}
+
+/** 计算当前位宽类型的范围 */
+const bitWidthRange = computed(() => {
+  const bitWidthType = form.value.bitWidthType
+  if (bitWidthType && bitWidthRanges[bitWidthType]) {
+    return bitWidthRanges[bitWidthType]
+  }
+  // 默认返回U16的范围
+  return { min: 0, max: 65535, label: '请先选择位宽类型' }
+})
 
 /** 获取单元类型名称 */
 function getUnitTypeName(unitType) {
@@ -364,6 +415,65 @@ function handleValueTypeChange() {
   }
 }
 
+/** 位宽类型变化处理 */
+function handleBitWidthTypeChange() {
+  // 当位宽类型变化时，检查并调整最小值和最大值
+  if (form.value.minValue !== null && form.value.minValue !== undefined) {
+    handleMinValueChange(form.value.minValue)
+  }
+  if (form.value.maxValue !== null && form.value.maxValue !== undefined) {
+    handleMaxValueChange(form.value.maxValue)
+  }
+}
+
+/** 最小值变化处理 */
+function handleMinValueChange(value) {
+  if (value === null || value === undefined) return
+  
+  const range = bitWidthRange.value
+  
+  // 如果超出范围，自动调整到边界值
+  if (value < range.min) {
+    form.value.minValue = range.min
+    proxy.$modal.msgWarning(`最小值不能小于 ${range.min}，已自动调整`)
+  } else if (value > range.max) {
+    form.value.minValue = range.max
+    proxy.$modal.msgWarning(`最小值不能大于 ${range.max}，已自动调整`)
+  }
+  
+  // 确保最小值不大于最大值
+  if (form.value.maxValue !== null && form.value.maxValue !== undefined) {
+    if (form.value.minValue > form.value.maxValue) {
+      form.value.minValue = form.value.maxValue
+      proxy.$modal.msgWarning('最小值不能大于最大值，已自动调整')
+    }
+  }
+}
+
+/** 最大值变化处理 */
+function handleMaxValueChange(value) {
+  if (value === null || value === undefined) return
+  
+  const range = bitWidthRange.value
+  
+  // 如果超出范围，自动调整到边界值
+  if (value < range.min) {
+    form.value.maxValue = range.min
+    proxy.$modal.msgWarning(`最大值不能小于 ${range.min}，已自动调整`)
+  } else if (value > range.max) {
+    form.value.maxValue = range.max
+    proxy.$modal.msgWarning(`最大值不能大于 ${range.max}，已自动调整`)
+  }
+  
+  // 确保最大值不小于最小值
+  if (form.value.minValue !== null && form.value.minValue !== undefined) {
+    if (form.value.maxValue < form.value.minValue) {
+      form.value.maxValue = form.value.minValue
+      proxy.$modal.msgWarning('最大值不能小于最小值，已自动调整')
+    }
+  }
+}
+
 /** 查询基带参数定义列表 */
 function getList() {
   loading.value = true
@@ -391,9 +501,9 @@ function reset() {
     enumOptions: undefined,
     minValue: undefined,
     maxValue: undefined,
-    scaleFactor: 1,
-    bitLength: 8,
-    hardwareOrder: 0,
+    quantizationUnit: 1,
+    bitWidthType: 'U16',
+    stepValue: 1,
     defaultValue: undefined,
     remark: undefined
   }
@@ -490,6 +600,21 @@ getList()
 </script>
 
 <style scoped>
+/* 容器样式 */
+.app-container {
+  padding: 20px;
+  background: #f0f2f5;
+}
+
+/* 表格容器 */
+.param-def-table {
+  width: 100%;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+}
+
+/* 参数编码样式 */
 .param-code-text {
   font-family: 'Courier New', monospace;
   font-size: 12px;
@@ -497,31 +622,70 @@ getList()
   font-weight: 500;
 }
 
+/* 参数名称样式 */
 .param-name-text {
   font-weight: 500;
   color: #303133;
 }
 
+/* 范围文本样式 */
 .range-text {
   font-size: 12px;
   color: #909399;
 }
 
+/* 表格行样式 */
 :deep(.even-row) {
   background-color: #fafafa;
 }
 
+/* 表格基础样式 */
 :deep(.el-table) {
   font-size: 13px;
+  width: 100% !important;
 }
 
+/* 表格头部样式 */
 :deep(.el-table th) {
   background-color: #f5f7fa;
   color: #606266;
   font-weight: 600;
+  padding: 12px 0;
 }
 
+/* 表格单元格样式 */
+:deep(.el-table td) {
+  padding: 10px 0;
+}
+
+/* 表格行悬停效果 */
+:deep(.el-table__row:hover) {
+  background-color: #f5f7fa;
+}
+
+/* 表格滚动条 */
 :deep(.el-table__body-wrapper) {
   overflow-x: auto;
+}
+
+/* 搜索表单优化 */
+:deep(.el-form--inline .el-form-item) {
+  margin-right: 16px;
+  margin-bottom: 12px;
+}
+
+/* 按钮组优化 */
+.mb8 {
+  margin-bottom: 16px;
+}
+
+/* 分页器样式 */
+:deep(.el-pagination) {
+  margin-top: 16px;
+  padding: 16px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  justify-content: center;
 }
 </style>

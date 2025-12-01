@@ -77,13 +77,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             d.param_id,
             d.param_name,
             d.param_code,
-            d.hardware_order,
-            d.bit_length,
+            d.bit_width_type,
             v.uint_value
         FROM sys_baseband_param_def d
         INNER JOIN sys_baseband_unit u ON d.unit_type = u.unit_type
         LEFT JOIN sys_baseband_param_value v ON v.param_id = d.param_id AND v.unit_id = u.unit_id
         WHERE u.unit_id = #{unitId}
-        ORDER BY d.hardware_order
+        ORDER BY d.param_id
     </select>
 </mapper>

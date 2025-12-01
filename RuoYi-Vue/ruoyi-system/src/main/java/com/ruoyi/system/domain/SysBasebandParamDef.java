@@ -46,17 +46,17 @@ public class SysBasebandParamDef extends BaseEntity
     @Excel(name = "最大值")
     private BigDecimal maxValue;
 
-    /** 浮点转无符号整数时的缩放倍数 */
-    @Excel(name = "缩放倍数")
-    private Integer scaleFactor;
+    /** 量化单位（下发给硬件时需要除以它） */
+    @Excel(name = "量化单位")
+    private Integer quantizationUnit;
 
-    /** 硬件位宽 */
-    @Excel(name = "位宽")
-    private Integer bitLength;
+    /** 硬件位宽类型 U8/U16/U32/I8/I16/I32 */
+    @Excel(name = "位宽类型")
+    private String bitWidthType;
 
-    /** 硬件顺序字段 */
-    @Excel(name = "硬件顺序")
-    private Integer hardwareOrder;
+    /** 步进值 */
+    @Excel(name = "步进")
+    private BigDecimal stepValue;
 
     /** 默认值 */
     @Excel(name = "默认值")
@@ -142,34 +142,34 @@ public class SysBasebandParamDef extends BaseEntity
         return maxValue;
     }
 
-    public void setScaleFactor(Integer scaleFactor) 
+    public void setQuantizationUnit(Integer quantizationUnit) 
     {
-        this.scaleFactor = scaleFactor;
+        this.quantizationUnit = quantizationUnit;
     }
 
-    public Integer getScaleFactor() 
+    public Integer getQuantizationUnit() 
     {
-        return scaleFactor;
+        return quantizationUnit;
     }
 
-    public void setBitLength(Integer bitLength) 
+    public void setBitWidthType(String bitWidthType) 
     {
-        this.bitLength = bitLength;
+        this.bitWidthType = bitWidthType;
     }
 
-    public Integer getBitLength() 
+    public String getBitWidthType() 
     {
-        return bitLength;
+        return bitWidthType;
     }
 
-    public void setHardwareOrder(Integer hardwareOrder) 
+    public void setStepValue(BigDecimal stepValue) 
     {
-        this.hardwareOrder = hardwareOrder;
+        this.stepValue = stepValue;
     }
 
-    public Integer getHardwareOrder() 
+    public BigDecimal getStepValue() 
     {
-        return hardwareOrder;
+        return stepValue;
     }
 
     public void setDefaultValue(String defaultValue) 
@@ -193,9 +193,9 @@ public class SysBasebandParamDef extends BaseEntity
             .append("enumOptions", getEnumOptions())
             .append("minValue", getMinValue())
             .append("maxValue", getMaxValue())
-            .append("scaleFactor", getScaleFactor())
-            .append("bitLength", getBitLength())
-            .append("hardwareOrder", getHardwareOrder())
+            .append("quantizationUnit", getQuantizationUnit())
+            .append("bitWidthType", getBitWidthType())
+            .append("stepValue", getStepValue())
             .append("defaultValue", getDefaultValue())
             .append("remark", getRemark())
             .append("createTime", getCreateTime())

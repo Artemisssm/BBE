@@ -38,6 +38,10 @@ public class SysBasebandUnit extends BaseEntity
     @Excel(name = "版本")
     private String version;
 
+    /** 模式类型 KSA/KMA/SSA/基带数传 */
+    @Excel(name = "模式类型")
+    private String modeType;
+
     public void setUnitId(Long unitId) 
     {
         this.unitId = unitId;
@@ -98,6 +102,16 @@ public class SysBasebandUnit extends BaseEntity
         return version;
     }
 
+    public void setModeType(String modeType) 
+    {
+        this.modeType = modeType;
+    }
+
+    public String getModeType() 
+    {
+        return modeType;
+    }
+
     @Override
     public String toString() {
         return new ToStringBuilder(this,ToStringStyle.MULTI_LINE_STYLE)
@@ -107,6 +121,7 @@ public class SysBasebandUnit extends BaseEntity
             .append("channelNo", getChannelNo())
             .append("status", getStatus())
             .append("version", getVersion())
+            .append("modeType", getModeType())
             .append("remark", getRemark())
             .append("createBy", getCreateBy())
             .append("createTime", getCreateTime())
