@@ -17,8 +17,8 @@
           <div class="unit-info">
             <div class="info-item">
               <el-icon class="info-icon"><Cpu /></el-icon>
-              <span class="info-label">单元名称：</span>
-              <span class="info-value">{{ unitInfo.unitName || '未知单元' }}</span>
+              <span class="info-label">链路模式：</span>
+              <span class="info-value">{{ unitInfo.unitName || '未知链路' }}</span>
             </div>
             <div class="info-item" v-if="unitInfo.channelNo">
               <el-icon class="info-icon"><Connection /></el-icon>
@@ -119,24 +119,12 @@
                   @change="handleParamChange(param)"
                 >
                   <el-option
-                    v-for="(label, value) in getEnumOptions(param.enumOptions)"
+                    v-for="(label, value) in getFilteredEnumOptions(param)"
                     :key="value"
                     :label="label"
                     :value="value"
                   />
                 </el-select>
-              </div>
-
-              <div v-else-if="param.valueType === 'SWITCH'" class="control-switch">
-                <el-switch
-                  v-model="param.rawValue"
-                  :active-value="param.maxValue ? param.maxValue.toString() : '1'"
-                  :inactive-value="param.minValue ? param.minValue.toString() : '0'"
-                  :disabled="param.disabled"
-                  active-text="开"
-                  inactive-text="关"
-                  @change="handleParamChange(param)"
-                />
               </div>
 
               <div v-else-if="param.valueType === 'FLOAT'" class="control-number">
@@ -177,6 +165,10 @@
                 <span class="label">范围:</span>
                 <span class="value">{{ param.minValue }} ~ {{ param.maxValue }}</span>
               </div>
+              <div v-if="param.constraintHint" class="param-constraint-hint">
+                <el-icon class="hint-icon"><InfoFilled /></el-icon>
+                <span class="hint-text">{{ param.constraintHint }}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -211,23 +203,12 @@
                     @change="handleParamChange(scope.row)"
                   >
                     <el-option
-                      v-for="(label, value) in getEnumOptions(scope.row.enumOptions)"
+                      v-for="(label, value) in getFilteredEnumOptions(scope.row)"
                       :key="value"
                       :label="label"
                       :value="value"
                     />
                   </el-select>
-                </div>
-                <div v-else-if="scope.row.valueType === 'SWITCH'" class="list-control">
-                  <el-switch
-                    v-model="scope.row.rawValue"
-                    :active-value="scope.row.maxValue ? scope.row.maxValue.toString() : '1'"
-                    :inactive-value="scope.row.minValue ? scope.row.minValue.toString() : '0'"
-                    :disabled="scope.row.disabled"
-                    active-text="开"
-                    inactive-text="关"
-                    @change="handleParamChange(scope.row)"
-                  />
                 </div>
                 <div v-else-if="scope.row.valueType === 'FLOAT'" class="list-control">
                   <el-input-number
@@ -265,6 +246,15 @@
                 <span v-else>-</span>
               </template>
             </el-table-column>
+            <el-table-column label="约束提示" min-width="150" show-overflow-tooltip>
+              <template #default="scope">
+                <div v-if="scope.row.constraintHint" class="constraint-hint-cell">
+                  <el-icon class="hint-icon"><InfoFilled /></el-icon>
+                  <span>{{ scope.row.constraintHint }}</span>
+                </div>
+                <span v-else>-</span>
+              </template>
+            </el-table-column>
           </el-table>
         </div>
 
@@ -293,6 +283,7 @@
 <script setup name="BasebandParamValue">
 import { listBasebandParamValue, saveBasebandParamValue, dispatchBasebandParam } from "@/api/system/baseband/paramValue"
 import { getBasebandUnit } from "@/api/system/baseband/unit"
+import { validateParamConstraint, getAllConstraintsForUnit } from "@/api/system/baseband/paramConstraint"
 import useTagsViewStore from '@/store/modules/tagsView'
 
 const { proxy } = getCurrentInstance()
@@ -309,6 +300,9 @@ const searchText = ref('')
 const viewMode = ref('grid') // grid 或 list
 const autoSaveStatus = ref(null) // 自动保存状态
 let autoSaveTimer = null // 自动保存定时器
+
+// 约束相关
+const constraintsMap = ref({}) // 约束映射表，key为参数代码，value为约束列表
 
 // 板卡资源配置
 const totalBoards = 4
@@ -353,7 +347,7 @@ function formatResource(channelNo, unitName) {
   const boardNo = Math.floor((channelNo - 1) / fpgasPerBoard) + 1
   const fpgaNo = (channelNo - 1) % fpgasPerBoard
   
-  if (unitName === '返向高速') {
+  if (unitName === '返向高速数传') {
     return `板${boardNo}（整板）`
   } else {
     return `板${boardNo}-FPGA${fpgaNo}`
@@ -365,8 +359,7 @@ function getValueTypeName(valueType) {
   const typeMap = {
     'ENUM': '枚举',
     'UINT': '整数',
-    'FLOAT': '浮点',
-    'SWITCH': '开关'
+    'FLOAT': '浮点'
   }
   return typeMap[valueType] || valueType
 }
@@ -381,8 +374,7 @@ function getValueTypeTagType(valueType) {
   const tagMap = {
     'ENUM': 'primary',
     'UINT': 'success',
-    'FLOAT': 'warning',
-    'SWITCH': ''
+    'FLOAT': 'warning'
   }
   return tagMap[valueType] || 'info'
 }
@@ -405,6 +397,24 @@ function getEnumOptions(enumOptionsStr) {
   }
 }
 
+/** 获取过滤后的枚举选项（应用枚举限制约束） */
+function getFilteredEnumOptions(param) {
+  const allOptions = getEnumOptions(param.enumOptions)
+  
+  // 如果有枚举限制约束
+  if (param.limitedEnumOptions && param.limitedEnumOptions.length > 0) {
+    const filtered = {}
+    param.limitedEnumOptions.forEach(value => {
+      if (allOptions[value]) {
+        filtered[value] = allOptions[value]
+      }
+    })
+    return filtered
+  }
+  
+  return allOptions
+}
+
 /** 获取单元信息 */
 function getUnitInfo() {
   if (!unitId.value) return
@@ -418,10 +428,11 @@ function getUnitInfo() {
 }
 
 /** 获取参数列表 */
-function getParamList() {
+async function getParamList() {
   if (!unitId.value) return
   loading.value = true
-  listBasebandParamValue(unitId.value).then(response => {
+  try {
+    const response = await listBasebandParamValue(unitId.value)
     paramList.value = (response.data || []).map(param => {
       // 如果参数值不存在，使用默认值
       if (!param.rawValue && param.defaultValue) {
@@ -431,13 +442,148 @@ function getParamList() {
       if (param.valueType === 'UINT' || param.valueType === 'FLOAT') {
         param.rawValue = param.rawValue ? parseFloat(param.rawValue) : (param.minValue || 0)
       }
+      // 初始化约束相关属性
+      param.disabled = false
+      param.constraintHint = null
+      param.limitedEnumOptions = null
       return param
     })
     filteredParamList.value = paramList.value
+    
+    // 加载约束规则
+    await loadConstraints()
+  } catch (error) {
+    console.error('获取参数列表失败:', error)
+  } finally {
     loading.value = false
-  }).catch(() => {
-    loading.value = false
+  }
+}
+
+/** 加载约束规则 */
+async function loadConstraints() {
+  if (!unitInfo.value.unitName || !unitInfo.value.unitType) {
+    return
+  }
+  
+  try {
+    const response = await getAllConstraintsForUnit(
+      unitInfo.value.unitName,
+      unitInfo.value.unitType,
+      unitInfo.value.modeType || ''
+    )
+    constraintsMap.value = response.data || {}
+    applyConstraints()
+  } catch (error) {
+    console.error('加载约束失败:', error)
+  }
+}
+
+/** 应用约束规则 */
+function applyConstraints() {
+  paramList.value.forEach(param => {
+    const constraints = constraintsMap.value[param.paramCode] || []
+    
+    // 重置约束状态
+    param.disabled = false
+    param.constraintHint = null
+    param.limitedEnumOptions = null
+    
+    constraints.forEach(constraint => {
+      // 检查约束条件是否满足
+      if (!isConstraintConditionMet(constraint)) {
+        return
+      }
+      
+      switch (constraint.constraintType) {
+        case 'CONTROL_DISABLE':
+          param.disabled = true
+          param.constraintHint = constraint.errorMessage || '该参数在当前条件下不可修改'
+          break
+          
+        case 'ENUM_LIMIT':
+          // 限制枚举选项
+          if (constraint.constraintValue) {
+            param.limitedEnumOptions = constraint.constraintValue.split(',')
+            param.constraintHint = constraint.errorMessage || '部分选项已被限制'
+          }
+          break
+          
+        case 'VALUE_RANGE':
+          // 显示范围提示
+          if (!param.constraintHint) {
+            param.constraintHint = constraint.errorMessage || 
+              `取值范围: ${constraint.constraintValue.replace(',', ' ~ ')}`
+          }
+          break
+          
+        case 'FIXED_VALUE':
+          // 显示固定值提示
+          if (!param.constraintHint) {
+            param.constraintHint = constraint.errorMessage || 
+              `可选值: ${constraint.constraintValue}`
+          }
+          break
+          
+        case 'FORMULA_CALCULATE':
+          // 显示计算公式提示
+          if (!param.constraintHint) {
+            param.constraintHint = constraint.errorMessage || 
+              `根据公式计算: ${constraint.constraintValue}`
+          }
+          break
+      }
+    })
   })
+  
+  filteredParamList.value = [...paramList.value]
+}
+
+/** 检查约束条件是否满足 */
+function isConstraintConditionMet(constraint) {
+  const condition = constraint.constraintCondition
+  if (!condition) {
+    return true // 无条件，总是满足
+  }
+  
+  const sourceParam = constraint.sourceParamName
+  if (!sourceParam) {
+    return false
+  }
+  
+  const sourceValue = getParamValue(sourceParam)
+  if (sourceValue === null || sourceValue === undefined) {
+    return false
+  }
+  
+  return evaluateCondition(String(sourceValue), condition)
+}
+
+/** 获取参数值 */
+function getParamValue(paramCode) {
+  const param = paramList.value.find(p => p.paramCode === paramCode)
+  return param ? param.rawValue : null
+}
+
+/** 评估条件表达式 */
+function evaluateCondition(value, condition) {
+  try {
+    if (condition.startsWith('==')) {
+      return value === condition.substring(2).trim()
+    } else if (condition.startsWith('!=')) {
+      return value !== condition.substring(2).trim()
+    } else if (condition.startsWith('>=')) {
+      return parseFloat(value) >= parseFloat(condition.substring(2))
+    } else if (condition.startsWith('<=')) {
+      return parseFloat(value) <= parseFloat(condition.substring(2))
+    } else if (condition.startsWith('>')) {
+      return parseFloat(value) > parseFloat(condition.substring(1))
+    } else if (condition.startsWith('<')) {
+      return parseFloat(value) < parseFloat(condition.substring(1))
+    }
+  } catch (e) {
+    return false
+  }
+  return false
 }
 
 /** 搜索参数 */
@@ -464,23 +610,76 @@ function handleParamChange(param) {
   // 显示保存中状态
   autoSaveStatus.value = {
     type: 'saving',
-    text: '保存中...'
+    text: '验证中...'
   }
   
-  // 防抖：500ms后自动保存
+  // 重新应用约束（因为源参数可能影响其他参数）
+  applyConstraints()
+  
+  // 防抖：500ms后验证并保存
   autoSaveTimer = setTimeout(() => {
-    autoSaveParam(param)
+    validateAndSaveParam(param)
   }, 500)
 }
 
+/** 验证并保存参数 */
+async function validateAndSaveParam(param) {
+  try {
+    // 构建所有参数的Map
+    const allParamsMap = {}
+    paramList.value.forEach(p => {
+      allParamsMap[p.paramCode] = p.rawValue ? String(p.rawValue) : ''
+    })
+    
+    // 验证约束
+    const validateData = {
+      unitName: unitInfo.value.unitName,
+      unitType: unitInfo.value.unitType,
+      modeType: unitInfo.value.modeType || '', // 添加模式类型
+      paramName: param.paramCode,
+      paramValue: param.rawValue ? String(param.rawValue) : '',
+      allParams: allParamsMap
+    }
+    
+    await validateParamConstraint(validateData)
+    
+    // 验证通过，保存参数
+    autoSaveStatus.value = {
+      type: 'saving',
+      text: '保存中...'
+    }
+    
+    await autoSaveParam(param)
+    
+  } catch (error) {
+    // 验证失败，显示错误信息
+    autoSaveStatus.value = {
+      type: 'error',
+      text: '验证失败'
+    }
+    
+    const errorMsg = error.msg || error.message || '参数约束验证失败'
+    proxy.$modal.msgError(errorMsg)
+    
+    // 恢复原值（如果有的话）
+    // 这里可以考虑保存修改前的值，验证失败时恢复
+    
+    // 5秒后隐藏错误状态
+    setTimeout(() => {
+      autoSaveStatus.value = null
+    }, 5000)
+  }
+}
+
 /** 自动保存单个参数 */
-function autoSaveParam(param) {
+async function autoSaveParam(param) {
   const saveData = [{
     paramId: param.paramId,
     rawValue: param.rawValue ? String(param.rawValue) : ''
   }]
   
-  saveBasebandParamValue(unitId.value, saveData).then(() => {
+  try {
+    await saveBasebandParamValue(unitId.value, saveData)
     autoSaveStatus.value = {
       type: 'success',
       text: '已保存'
@@ -489,17 +688,20 @@ function autoSaveParam(param) {
     setTimeout(() => {
       autoSaveStatus.value = null
     }, 3000)
-  }).catch(error => {
+  } catch (error) {
     autoSaveStatus.value = {
       type: 'error',
       text: '保存失败'
     }
+    const errorMsg = error.msg || error.message || '保存失败'
+    proxy.$modal.msgError(errorMsg)
     console.error('自动保存失败:', error)
     // 5秒后隐藏错误状态
     setTimeout(() => {
       autoSaveStatus.value = null
     }, 5000)
-  })
+    throw error
+  }
 }
 
 /** 下发参数 */
@@ -865,18 +1067,12 @@ watch(() => unitInfo.value, () => {
   color: #f57c00;
 }
 
-.value-type-switch {
-  background: #f3e5f5;
-  color: #7b1fa2;
-}
-
 /* 参数控件 */
 .param-control {
   flex: 1;
 }
 
 .control-enum,
-.control-switch,
 .control-number {
   width: 100%;
 }
@@ -915,6 +1111,41 @@ watch(() => unitInfo.value, () => {
 .param-range .value {
   color: #28a745;
   font-weight: 500;
+}
+
+.param-constraint-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 6px 8px;
+  background: #fff3cd;
+  border-radius: 4px;
+  margin-top: 4px;
+}
+
+.param-constraint-hint .hint-icon {
+  color: #856404;
+  font-size: 14px;
+  margin-top: 1px;
+  flex-shrink: 0;
+}
+
+.param-constraint-hint .hint-text {
+  color: #856404;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.constraint-hint-cell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #856404;
+}
+
+.constraint-hint-cell .hint-icon {
+  font-size: 14px;
+  flex-shrink: 0;
 }
 
 /* 空状态 */

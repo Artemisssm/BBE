@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.SysBasebandParamConstraintMapper">
+    
+    <resultMap type="SysBasebandParamConstraint" id="SysBasebandParamConstraintResult">
+        <result property="constraintId"    column="constraint_id"    />
+        <result property="sourceUnitName"    column="source_unit_name"    />
+        <result property="sourceUnitType"    column="source_unit_type"    />
+        <result property="sourceParamName"    column="source_param_name"    />
+        <result property="targetUnitName"    column="target_unit_name"    />
+        <result property="targetUnitType"    column="target_unit_type"    />
+        <result property="targetParamName"    column="target_param_name"    />
+        <result property="modeTypes"    column="mode_types"    />
+        <result property="constraintType"    column="constraint_type"    />
+        <result property="constraintCondition"    column="constraint_condition"    />
+        <result property="constraintValue"    column="constraint_value"    />
+        <result property="priority"    column="priority"    />
+        <result property="errorMessage"    column="error_message"    />
+        <result property="status"    column="status"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateTime"    column="update_time"    />
+        <result property="remark"    column="remark"    />
+    </resultMap>
+
+    <sql id="selectSysBasebandParamConstraintVo">
+        select constraint_id, source_unit_name, source_unit_type, source_param_name, 
+               target_unit_name, target_unit_type, target_param_name, mode_types,
+               constraint_type, constraint_condition, constraint_value, 
+               priority, error_message, status, create_time, update_time, remark
+        from sys_baseband_param_constraint
+    </sql>
+
+    <select id="selectSysBasebandParamConstraintList" parameterType="SysBasebandParamConstraint" resultMap="SysBasebandParamConstraintResult">
+        <include refid="selectSysBasebandParamConstraintVo"/>
+        <where>  
+            <if test="sourceUnitName != null  and sourceUnitName != ''"> and source_unit_name = #{sourceUnitName}</if>
+            <if test="sourceUnitType != null  and sourceUnitType != ''"> and source_unit_type = #{sourceUnitType}</if>
+            <if test="sourceParamName != null  and sourceParamName != ''"> and source_param_name like concat('%', #{sourceParamName}, '%')</if>
+            <if test="targetUnitName != null  and targetUnitName != ''"> and target_unit_name = #{targetUnitName}</if>
+            <if test="targetUnitType != null  and targetUnitType != ''"> and target_unit_type = #{targetUnitType}</if>
+            <if test="targetParamName != null  and targetParamName != ''"> and target_param_name like concat('%', #{targetParamName}, '%')</if>
+            <if test="modeTypes != null  and modeTypes != ''"> and (mode_types is null or mode_types = '' or FIND_IN_SET(#{modeTypes}, mode_types) > 0)</if>
+            <if test="constraintType != null  and constraintType != ''"> and constraint_type = #{constraintType}</if>
+            <if test="status != null  and status != ''"> and status = #{status}</if>
+        </where>
+        order by priority desc, constraint_id
+    </select>
+    
+    <select id="selectSysBasebandParamConstraintByConstraintId" parameterType="Long" resultMap="SysBasebandParamConstraintResult">
+        <include refid="selectSysBasebandParamConstraintVo"/>
+        where constraint_id = #{constraintId}
+    </select>
+
+    <select id="selectConstraintsBySourceParam" resultMap="SysBasebandParamConstraintResult">
+        <include refid="selectSysBasebandParamConstraintVo"/>
+        where status = '0'
+          and source_param_name = #{paramName}
+          and (source_unit_name = #{unitName} or source_unit_name = '*')
+          and (source_unit_type = #{unitType} or source_unit_type = '*')
+          and (mode_types is null or mode_types = '' or FIND_IN_SET(#{modeType}, mode_types) > 0)
+        order by priority desc, constraint_id
+    </select>
+
+    <select id="selectConstraintsByTargetParam" resultMap="SysBasebandParamConstraintResult">
+        <include refid="selectSysBasebandParamConstraintVo"/>
+        where status = '0'
+          and target_param_name = #{paramName}
+          and (target_unit_name = #{unitName} or target_unit_name = '*')
+          and (target_unit_type = #{unitType} or target_unit_type = '*')
+          and (mode_types is null or mode_types = '' or FIND_IN_SET(#{modeType}, mode_types) > 0)
+        order by priority desc, constraint_id
+    </select>
+        
+    <insert id="insertSysBasebandParamConstraint" parameterType="SysBasebandParamConstraint" useGeneratedKeys="true" keyProperty="constraintId">
+        insert into sys_baseband_param_constraint
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="sourceUnitName != null">source_unit_name,</if>
+            <if test="sourceUnitType != null">source_unit_type,</if>
+            <if test="sourceParamName != null">source_param_name,</if>
+            <if test="targetUnitName != null">target_unit_name,</if>
+            <if test="targetUnitType != null">target_unit_type,</if>
+            <if test="targetParamName != null">target_param_name,</if>
+            <if test="modeTypes != null">mode_types,</if>
+            <if test="constraintType != null">constraint_type,</if>
+            <if test="constraintCondition != null">constraint_condition,</if>
+            <if test="constraintValue != null">constraint_value,</if>
+            <if test="priority != null">priority,</if>
+            <if test="errorMessage != null">error_message,</if>
+            <if test="status != null">status,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="remark != null">remark,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="sourceUnitName != null">#{sourceUnitName},</if>
+            <if test="sourceUnitType != null">#{sourceUnitType},</if>
+            <if test="sourceParamName != null">#{sourceParamName},</if>
+            <if test="targetUnitName != null">#{targetUnitName},</if>
+            <if test="targetUnitType != null">#{targetUnitType},</if>
+            <if test="targetParamName != null">#{targetParamName},</if>
+            <if test="modeTypes != null">#{modeTypes},</if>
+            <if test="constraintType != null">#{constraintType},</if>
+            <if test="constraintCondition != null">#{constraintCondition},</if>
+            <if test="constraintValue != null">#{constraintValue},</if>
+            <if test="priority != null">#{priority},</if>
+            <if test="errorMessage != null">#{errorMessage},</if>
+            <if test="status != null">#{status},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="remark != null">#{remark},</if>
+         </trim>
+    </insert>
+
+    <update id="updateSysBasebandParamConstraint" parameterType="SysBasebandParamConstraint">
+        update sys_baseband_param_constraint
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="sourceUnitName != null">source_unit_name = #{sourceUnitName},</if>
+            <if test="sourceUnitType != null">source_unit_type = #{sourceUnitType},</if>
+            <if test="sourceParamName != null">source_param_name = #{sourceParamName},</if>
+            <if test="targetUnitName != null">target_unit_name = #{targetUnitName},</if>
+            <if test="targetUnitType != null">target_unit_type = #{targetUnitType},</if>
+            <if test="targetParamName != null">target_param_name = #{targetParamName},</if>
+            <if test="modeTypes != null">mode_types = #{modeTypes},</if>
+            <if test="constraintType != null">constraint_type = #{constraintType},</if>
+            <if test="constraintCondition != null">constraint_condition = #{constraintCondition},</if>
+            <if test="constraintValue != null">constraint_value = #{constraintValue},</if>
+            <if test="priority != null">priority = #{priority},</if>
+            <if test="errorMessage != null">error_message = #{errorMessage},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="remark != null">remark = #{remark},</if>
+        </trim>
+        where constraint_id = #{constraintId}
+    </update>
+
+    <delete id="deleteSysBasebandParamConstraintByConstraintId" parameterType="Long">
+        delete from sys_baseband_param_constraint where constraint_id = #{constraintId}
+    </delete>
+
+    <delete id="deleteSysBasebandParamConstraintByConstraintIds" parameterType="String">
+        delete from sys_baseband_param_constraint where constraint_id in 
+        <foreach item="constraintId" collection="array" open="(" separator="," close=")">
+            #{constraintId}
+        </foreach>
+    </delete>
+</mapper>

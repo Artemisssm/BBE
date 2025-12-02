@@ -162,7 +162,6 @@
                 <el-option label="枚举" value="ENUM" />
                 <el-option label="无符号整数" value="UINT" />
                 <el-option label="浮点" value="FLOAT" />
-                <el-option label="开关" value="SWITCH" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -367,8 +366,7 @@ function getValueTypeName(valueType) {
   const typeMap = {
     'ENUM': '枚举',
     'UINT': '整数',
-    'FLOAT': '浮点',
-    'SWITCH': '开关'
+    'FLOAT': '浮点'
   }
   return typeMap[valueType] || valueType
 }

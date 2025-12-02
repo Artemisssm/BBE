@@ -40,6 +40,9 @@ public class SysBasebandParamValueServiceImpl implements ISysBasebandParamValueS
     @Autowired
     private SysBasebandUnitMapper unitMapper;
 
+    @Autowired
+    private com.ruoyi.system.service.ISysBasebandParamConstraintService constraintService;
+
     /**
      * 根据单元ID获取参数配置列表（包含参数定义信息）
      * 
@@ -109,6 +112,45 @@ public class SysBasebandParamValueServiceImpl implements ISysBasebandParamValueS
     @Transactional
     public int saveParamValues(Long unitId, List<Map<String, Object>> paramValues)
     {
+        // 获取单元信息
+        SysBasebandUnit unit = unitMapper.selectSysBasebandUnitByUnitId(unitId);
+        if (unit == null) {
+            throw new RuntimeException("单元不存在");
+        }
+        
+        // 构建所有参数值的Map，用于约束验证
+        Map<String, String> allParamsMap = new HashMap<>();
+        Map<Long, String> paramIdToNameMap = new HashMap<>();
+        
+        for (Map<String, Object> item : paramValues) {
+            Long paramId = Long.valueOf(item.get("paramId").toString());
+            String rawValue = item.get("rawValue").toString();
+            
+            SysBasebandParamDef paramDef = paramDefMapper.selectSysBasebandParamDefByParamId(paramId);
+            if (paramDef != null) {
+                allParamsMap.put(paramDef.getParamCode(), rawValue);
+                paramIdToNameMap.put(paramId, paramDef.getParamCode());
+            }
+        }
+        
+        // 验证所有参数的约束
+        for (Map<String, Object> item : paramValues) {
+            Long paramId = Long.valueOf(item.get("paramId").toString());
+            String rawValue = item.get("rawValue").toString();
+            String paramName = paramIdToNameMap.get(paramId);
+            
+            if (paramName != null) {
+                String error = constraintService.validateParamConstraint(
+                    unit.getUnitName(), unit.getUnitType(), unit.getModeType(), 
+                    paramName, rawValue, allParamsMap);
+                
+                if (error != null) {
+                    throw new RuntimeException("参数约束验证失败: " + paramName + " - " + error);
+                }
+            }
+        }
+        
+        // 验证通过后，保存参数值
         String username = SecurityUtils.getUsername();
         int count = 0;
         

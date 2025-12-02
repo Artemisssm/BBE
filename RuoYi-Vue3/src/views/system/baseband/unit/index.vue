@@ -1,14 +1,16 @@
 <template>
   <div class="app-container">
     <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch">
-      <el-form-item label="单元名称" prop="unitName">
-        <el-select v-model="queryParams.unitName" placeholder="请选择单元名称" clearable style="width: 200px">
-          <el-option label="前向中低速" value="前向中低速" />
-          <el-option label="返向高速" value="返向高速" />
-          <el-option label="小环" value="小环" />
-          <el-option label="返向低速" value="返向低速" />
+      <el-form-item label="链路模式" prop="unitName">
+        <el-select v-model="queryParams.unitName" placeholder="请选择链路模式" clearable style="width: 200px">
+          <el-option label="返向中低速数传" value="返向中低速数传" />
+          <el-option label="返向高速数传" value="返向高速数传" />
           <el-option label="ACM数传" value="ACM数传" />
-          <el-option label="模拟源" value="模拟源" />
+          <el-option label="前向数传小环" value="前向数传小环" />
+          <el-option label="低速模拟源" value="低速模拟源" />
+          <el-option label="高速模拟源" value="高速模拟源" />
+          <el-option label="ACM模拟源" value="ACM模拟源" />
+          <el-option label="前向数传" value="前向数传" />
         </el-select>
       </el-form-item>
       <el-form-item label="单元类型" prop="unitType">
@@ -93,7 +95,7 @@
           </div>
         </template>
       </el-table-column>
-      <el-table-column label="单元名称" align="center" prop="unitName" min-width="140">
+      <el-table-column label="链路模式" align="center" prop="unitName" min-width="140">
         <template #default="scope">
           <el-tag :type="getUnitNameTag(scope.row.unitName)" size="default" effect="plain">
             {{ scope.row.unitName }}
@@ -150,14 +152,16 @@
       <el-form ref="unitRef" :model="form" :rules="rules" label-width="120px">
         <el-row>
           <el-col :span="24">
-            <el-form-item label="单元名称" prop="unitName">
-              <el-select v-model="form.unitName" placeholder="请选择单元名称" style="width: 100%" @change="handleUnitNameChange">
-                <el-option label="前向中低速" value="前向中低速" />
-                <el-option label="返向高速" value="返向高速" />
-                <el-option label="小环" value="小环" />
-                <el-option label="返向低速" value="返向低速" />
+            <el-form-item label="链路模式" prop="unitName">
+              <el-select v-model="form.unitName" placeholder="请选择链路模式" style="width: 100%" @change="handleUnitNameChange">
+                <el-option label="返向中低速数传" value="返向中低速数传" />
+                <el-option label="返向高速数传" value="返向高速数传" />
                 <el-option label="ACM数传" value="ACM数传" />
-                <el-option label="模拟源" value="模拟源" />
+                <el-option label="前向数传小环" value="前向数传小环" />
+                <el-option label="低速模拟源" value="低速模拟源" />
+                <el-option label="高速模拟源" value="高速模拟源" />
+                <el-option label="ACM模拟源" value="ACM模拟源" />
+                <el-option label="前向数传" value="前向数传" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -207,14 +211,14 @@
                 </el-option>
               </el-select>
               <div style="color: #909399; font-size: 12px; margin-top: 5px;">
-                <span v-if="form.unitName === '返向高速'" style="color: #e6a23c;">
-                  ⚠️ 返向高速需要占用整块板（FPGA0和FPGA1）
+                <span v-if="form.unitName === '返向高速数传'" style="color: #e6a23c;">
+                  ⚠️ 返向高速数传需要占用整块板（FPGA0和FPGA1）
                 </span>
                 <span v-else-if="form.unitName">
                   ℹ️ 该模式只占用一个FPGA
                 </span>
                 <span v-else>
-                  请先选择单元名称
+                  请先选择链路模式
                 </span>
               </div>
             </el-form-item>
@@ -258,10 +262,12 @@
 
 <script setup name="BasebandUnit">
 import { listBasebandUnit, getBasebandUnit, delBasebandUnit, addBasebandUnit, updateBasebandUnit, exportBasebandUnit } from "@/api/system/baseband/unit"
+import useTagsViewStore from '@/store/modules/tagsView'
 
 const { proxy } = getCurrentInstance()
 const { sys_normal_disable } = proxy.useDict("sys_normal_disable")
 const router = useRouter()
+const tagsViewStore = useTagsViewStore()
 
 const unitList = ref([])
 const open = ref(false)
@@ -294,7 +300,7 @@ const data = reactive({
   },
   rules: {
     unitName: [
-      { required: true, message: "单元名称不能为空", trigger: "change" }
+      { required: true, message: "链路模式不能为空", trigger: "change" }
     ],
     unitTypes: [
       { 
@@ -314,25 +320,29 @@ const data = reactive({
 
 const { queryParams, form, rules } = toRefs(data)
 
-/** 单元名称预设选项 */
-const unitNameOptions = [
-  { label: '前向中低速', value: '前向中低速' },
-  { label: '返向高速', value: '返向高速' },
-  { label: '小环', value: '小环' },
-  { label: '返向低速', value: '返向低速' },
+/** 链路模式预设选项 */
+const linkModeOptions = [
+  { label: '返向中低速数传', value: '返向中低速数传' },
+  { label: '返向高速数传', value: '返向高速数传' },
   { label: 'ACM数传', value: 'ACM数传' },
-  { label: '模拟源', value: '模拟源' }
+  { label: '前向数传小环', value: '前向数传小环' },
+  { label: '低速模拟源', value: '低速模拟源' },
+  { label: '高速模拟源', value: '高速模拟源' },
+  { label: 'ACM模拟源', value: 'ACM模拟源' },
+  { label: '前向数传', value: '前向数传' }
 ]
 
-/** 获取单元名称标签样式 */
+/** 获取链路模式标签样式 */
 function getUnitNameTag(unitName) {
   const tagMap = {
-    '前向中低速': 'primary',
-    '返向高速': 'success',
-    '小环': 'warning',
-    '返向低速': 'danger',
+    '返向中低速数传': 'primary',
+    '返向高速数传': 'success',
     'ACM数传': 'info',
-    '模拟源': ''
+    '前向数传小环': 'warning',
+    '低速模拟源': 'danger',
+    '高速模拟源': '',
+    'ACM模拟源': 'info',
+    '前向数传': 'primary'
   }
   return tagMap[unitName] || 'info'
 }
@@ -375,7 +385,7 @@ function formatResource(channelNo, unitName) {
   const boardNo = Math.floor((channelNo - 1) / fpgasPerBoard) + 1
   const fpgaNo = (channelNo - 1) % fpgasPerBoard
   
-  if (unitName === '返向高速') {
+  if (unitName === '返向高速数传') {
     return `板${boardNo}（整板）`
   } else {
     return `板${boardNo}-FPGA${fpgaNo}`
@@ -390,7 +400,7 @@ function getBoardInfo(channelNo) {
 
 /** 获取FPGA信息 */
 function getFpgaInfo(channelNo, unitName) {
-  if (unitName === '返向高速') {
+  if (unitName === '返向高速数传') {
     return '整板'
   }
   const fpgaNo = (channelNo - 1) % fpgasPerBoard
@@ -402,7 +412,7 @@ function getResourceBadgeClass(channelNo, unitName) {
   const boardNo = Math.floor((channelNo - 1) / fpgasPerBoard) + 1
   const fpgaNo = (channelNo - 1) % fpgasPerBoard
   
-  if (unitName === '返向高速') {
+  if (unitName === '返向高速数传') {
     return `board-${boardNo} full-board`
   }
   return `board-${boardNo} fpga-${fpgaNo}`
@@ -446,8 +456,8 @@ function updateOccupiedResources() {
     const boardNo = Math.floor((channelNo - 1) / fpgasPerBoard) + 1
     const fpgaNo = (channelNo - 1) % fpgasPerBoard
     
-    // 如果是返向高速，占用整块板
-    if (unit.unitName === '返向高速') {
+    // 如果是返向高速数传，占用整块板
+    if (unit.unitName === '返向高速数传') {
       occupiedResources.value.add(`board-${boardNo}`)
       occupiedResources.value.add(`${boardNo}-0`)
       occupiedResources.value.add(`${boardNo}-1`)
@@ -471,11 +481,11 @@ function updateOccupiedResources() {
 /** 更新可用资源列表 */
 function updateAvailableResources() {
   const resources = []
-  const isHighSpeed = form.value.unitName === '返向高速'
+  const isHighSpeed = form.value.unitName === '返向高速数传'
   
   for (let board = 1; board <= totalBoards; board++) {
     if (isHighSpeed) {
-      // 返向高速需要整块板
+      // 返向高速数传需要整块板
       const boardOccupied = occupiedResources.value.has(`board-${board}`) ||
                            occupiedResources.value.has(`${board}-0`) ||
                            occupiedResources.value.has(`${board}-1`)
@@ -531,7 +541,7 @@ function reset() {
   availableResources.value = []
 }
 
-/** 单元名称变化处理 */
+/** 链路模式变化处理 */
 function handleUnitNameChange() {
   // 清空通道号选择
   form.value.channelNo = undefined
@@ -653,9 +663,68 @@ function handleDelete(row) {
   proxy.$modal.confirm('是否确认删除单元编号为"' + unitIds + '"的数据项？').then(function() {
     return delBasebandUnit(unitIds)
   }).then(() => {
+    // 关闭被删除单元对应的参数配置标签页
+    closeRelatedTabs(unitIds)
+    
     getList()
     proxy.$modal.msgSuccess("删除成功")
   }).catch(() => {})
+}
+
+/** 关闭相关的标签页 */
+function closeRelatedTabs(unitIds) {
+  // 将unitIds转换为数组
+  const idsArray = Array.isArray(unitIds) ? unitIds : [unitIds]
+  
+  // 获取所有已打开的标签页
+  const visitedViews = tagsViewStore.visitedViews
+  
+  console.log('准备关闭标签页，unitIds:', idsArray)
+  console.log('当前所有标签页数量:', visitedViews.length)
+  
+  // 查找并关闭相关的参数配置标签页
+  idsArray.forEach(unitId => {
+    console.log(`查找unitId=${unitId}的标签页...`)
+    
+    const relatedViews = visitedViews.filter(view => {
+      // 方式1：通过路径匹配（精确匹配）
+      if (view.path === `/system/baseband/value/${unitId}`) {
+        console.log('  ✓ 精确路径匹配:', view.path)
+        return true
+      }
+      
+      // 方式2：通过路径匹配（包含匹配，兼容不同路径格式）
+      if (view.path && (
+        view.path.includes(`/system/baseband/value/${unitId}`) ||
+        view.path.includes(`/system/baseband/paramValue/${unitId}`)
+      )) {
+        console.log('  ✓ 包含路径匹配:', view.path)
+        return true
+      }
+      
+      // 方式3：通过query参数匹配
+      if (view.query && view.query.unitId == unitId) {
+        console.log('  ✓ query参数匹配:', view.query)
+        return true
+      }
+      
+      // 方式4：通过params参数匹配
+      if (view.params && view.params.unitId == unitId) {
+        console.log('  ✓ params参数匹配:', view.params)
+        return true
+      }
+      
+      return false
+    })
+    
+    console.log(`找到${relatedViews.length}个相关标签页`)
+    
+    // 关闭找到的标签页
+    relatedViews.forEach(view => {
+      console.log('  关闭标签页:', view.title || view.path)
+      tagsViewStore.delView(view)
+    })
+  })
 }
 
 /** 导出按钮操作 */
@@ -714,7 +783,7 @@ getList()
   background-color: #f5f7fa;
 }
 
-/* 单元名称标签样式 */
+/* 链路模式标签样式 */
 :deep(.el-tag) {
   font-weight: 500;
   padding: 6px 14px;
