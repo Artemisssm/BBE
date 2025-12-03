@@ -54,6 +54,10 @@ public class SysBasebandParamDef extends BaseEntity
     @Excel(name = "位宽类型")
     private String bitWidthType;
 
+    /** 显示排序 */
+    @Excel(name = "排序")
+    private Integer sortOrder;
+
     /** 步进值 */
     @Excel(name = "步进")
     private BigDecimal stepValue;
@@ -162,6 +166,16 @@ public class SysBasebandParamDef extends BaseEntity
         return bitWidthType;
     }
 
+    public void setSortOrder(Integer sortOrder) 
+    {
+        this.sortOrder = sortOrder;
+    }
+
+    public Integer getSortOrder() 
+    {
+        return sortOrder;
+    }
+
     public void setStepValue(BigDecimal stepValue) 
     {
         this.stepValue = stepValue;
@@ -195,6 +209,7 @@ public class SysBasebandParamDef extends BaseEntity
             .append("maxValue", getMaxValue())
             .append("quantizationUnit", getQuantizationUnit())
             .append("bitWidthType", getBitWidthType())
+            .append("sortOrder", getSortOrder())
             .append("stepValue", getStepValue())
             .append("defaultValue", getDefaultValue())
             .append("remark", getRemark())

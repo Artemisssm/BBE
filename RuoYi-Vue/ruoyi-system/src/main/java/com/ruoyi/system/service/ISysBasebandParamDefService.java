@@ -58,4 +58,12 @@ public interface ISysBasebandParamDefService
      * @return 结果
      */
     public int deleteSysBasebandParamDefByParamId(Long paramId);
+
+    /**
+     * 批量更新参数排序
+     * 
+     * @param paramList 参数列表（包含paramId和sortOrder）
+     * @return 结果
+     */
+    public int batchUpdateSortOrder(List<SysBasebandParamDef> paramList);
 }

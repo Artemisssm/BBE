@@ -15,6 +15,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="maxValue"    column="max_value"    />
         <result property="quantizationUnit"    column="quantization_unit"    />
         <result property="bitWidthType"    column="bit_width_type"    />
+        <result property="sortOrder"    column="sort_order"    />
         <result property="stepValue"    column="step_value"    />
         <result property="defaultValue"    column="default_value"    />
         <result property="remark"    column="remark"    />
@@ -22,7 +23,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <sql id="selectSysBasebandParamDefVo">
-        select param_id, unit_type, param_code, param_name, value_type, enum_options, min_value, max_value, quantization_unit, bit_width_type, step_value, default_value, remark, create_time from sys_baseband_param_def
+        select param_id, unit_type, param_code, param_name, value_type, enum_options, min_value, max_value, quantization_unit, bit_width_type, sort_order, step_value, default_value, remark, create_time from sys_baseband_param_def
     </sql>
 
     <select id="selectSysBasebandParamDefList" parameterType="SysBasebandParamDef" resultMap="SysBasebandParamDefResult">
@@ -32,7 +33,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="paramCode != null  and paramCode != ''"> and param_code like concat('%', #{paramCode}, '%')</if>
             <if test="paramName != null  and paramName != ''"> and param_name like concat('%', #{paramName}, '%')</if>
         </where>
-        order by unit_type, param_id
+        order by unit_type, COALESCE(sort_order, 999999), param_id
     </select>
     
     <select id="selectSysBasebandParamDefByParamId" parameterType="Long" resultMap="SysBasebandParamDefResult">
@@ -43,7 +44,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <select id="selectSysBasebandParamDefByUnitType" parameterType="String" resultMap="SysBasebandParamDefResult">
         <include refid="selectSysBasebandParamDefVo"/>
         where unit_type = #{unitType}
-        order by param_id
+        order by COALESCE(sort_order, 999999), param_id
     </select>
         
     <insert id="insertSysBasebandParamDef" parameterType="SysBasebandParamDef" useGeneratedKeys="true" keyProperty="paramId">
@@ -109,4 +110,10 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             #{paramId}
         </foreach>
     </delete>
+
+    <update id="updateSortOrder" parameterType="map">
+        update sys_baseband_param_def
+        set sort_order = #{sortOrder}
+        where param_id = #{paramId}
+    </update>
 </mapper>

@@ -141,6 +141,18 @@
                 />
               </div>
 
+              <div v-else-if="param.valueType === 'HEX'" class="control-hex">
+                <el-input
+                  v-model="param.rawValue"
+                  placeholder="0x0000"
+                  :disabled="param.disabled"
+                  @change="handleParamChange(param)"
+                  class="param-input-hex"
+                >
+                  <template #prepend>0x</template>
+                </el-input>
+              </div>
+
               <div v-else class="control-number">
                 <el-input-number
                   v-model.number="param.rawValue"
@@ -223,6 +235,18 @@
                     @change="handleParamChange(scope.row)"
                   />
                 </div>
+                <div v-else-if="scope.row.valueType === 'HEX'" class="list-control">
+                  <el-input
+                    v-model="scope.row.rawValue"
+                    placeholder="0x0000"
+                    :disabled="scope.row.disabled"
+                    style="width: 100%"
+                    @change="handleParamChange(scope.row)"
+                  >
+                    <template #prepend>0x</template>
+                  </el-input>
+                </div>
+                
                 <div v-else class="list-control">
                   <el-input-number
                     v-model.number="scope.row.rawValue"
@@ -285,8 +309,10 @@ import { listBasebandParamValue, saveBasebandParamValue, dispatchBasebandParam }
 import { getBasebandUnit } from "@/api/system/baseband/unit"
 import { validateParamConstraint, getAllConstraintsForUnit } from "@/api/system/baseband/paramConstraint"
 import useTagsViewStore from '@/store/modules/tagsView'
+import { useBasebandStore } from '@/store/modules/baseband'
 
 const { proxy } = getCurrentInstance()
+const basebandStore = useBasebandStore()
 const route = useRoute()
 const router = useRouter()
 const tagsViewStore = useTagsViewStore()
@@ -359,7 +385,8 @@ function getValueTypeName(valueType) {
   const typeMap = {
     'ENUM': '枚举',
     'UINT': '整数',
-    'FLOAT': '浮点'
+    'FLOAT': '浮点',
+    'HEX': '16进制'
   }
   return typeMap[valueType] || valueType
 }
@@ -369,12 +396,31 @@ function getValueTypeClass(valueType) {
   return `value-type-${valueType.toLowerCase()}`
 }
 
+/** 验证16进制输入 */
+function validateHexInput(value) {
+  // 移除0x前缀
+  const hexValue = value.replace(/^0x/i, '')
+  // 验证是否为有效的16进制
+  return /^[0-9A-Fa-f]+$/.test(hexValue)
+}
+
+/** 格式化16进制显示 */
+function formatHexValue(value) {
+  if (!value) return '0x0'
+  const str = String(value)
+  if (str.startsWith('0x') || str.startsWith('0X')) {
+    return str.toUpperCase()
+  }
+  return '0x' + str.toUpperCase()
+}
+
 /** 获取值类型标签类型（用于列表视图） */
 function getValueTypeTagType(valueType) {
   const tagMap = {
     'ENUM': 'primary',
     'UINT': 'success',
-    'FLOAT': 'warning'
+    'FLOAT': 'warning',
+    'HEX': 'danger'
   }
   return tagMap[valueType] || 'info'
 }
@@ -441,6 +487,13 @@ async function getParamList() {
       // 根据值类型转换数据类型
       if (param.valueType === 'UINT' || param.valueType === 'FLOAT') {
         param.rawValue = param.rawValue ? parseFloat(param.rawValue) : (param.minValue || 0)
+      } else if (param.valueType === 'HEX') {
+        // HEX类型：确保有值，移除0x前缀（前端会自动添加）
+        if (!param.rawValue) {
+          param.rawValue = param.defaultValue || '0'
+        }
+        // 移除0x前缀（如果有）
+        param.rawValue = String(param.rawValue).replace(/^0x/i, '').toUpperCase()
       }
       // 初始化约束相关属性
       param.disabled = false
@@ -764,6 +817,26 @@ onMounted(() => {
 watch(() => unitInfo.value, () => {
   updatePageTitle()
 }, { deep: true })
+
+// 监听参数定义更新，自动刷新参数列表
+watch(() => basebandStore.paramDefUpdateTime, (newTime, oldTime) => {
+  if (newTime > 0 && newTime !== oldTime) {
+    console.log('[参数配置] 检测到参数定义更新，准备刷新列表')
+    
+    // 检查是否是当前单元类型的更新
+    const updatedUnitType = basebandStore.paramDefUpdateUnitType
+    const currentUnitType = unitInfo.value.unitType
+    
+    if (!updatedUnitType || updatedUnitType === currentUnitType) {
+      console.log('[参数配置] 刷新参数列表，单元类型:', currentUnitType)
+      // 延迟一点刷新，确保后端数据已更新
+      setTimeout(() => {
+        getParamList()
+        proxy.$modal.msgSuccess('参数列表已更新')
+      }, 300)
+    }
+  }
+})
 </script>
 
 <style scoped>
@@ -1067,14 +1140,25 @@ watch(() => unitInfo.value, () => {
   color: #f57c00;
 }
 
+.value-type-hex {
+  background: #ffebee;
+  color: #c62828;
+}
+
 /* 参数控件 */
 .param-control {
   flex: 1;
 }
 
 .control-enum,
-.control-number {
+.control-number,
+.control-hex {
   width: 100%;
+}
+
+.param-input-hex {
+  width: 100%;
+  font-family: 'Courier New', monospace;
 }
 
 .param-select,

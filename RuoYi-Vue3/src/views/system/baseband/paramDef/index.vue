@@ -75,9 +75,24 @@
       <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>
 
-    <el-table v-loading="loading" :data="paramDefList" @selection-change="handleSelectionChange" :row-class-name="tableRowClassName" class="param-def-table">
+    <el-table 
+      v-loading="loading" 
+      :data="paramDefList" 
+      @selection-change="handleSelectionChange" 
+      :row-class-name="tableRowClassName" 
+      class="param-def-table"
+      row-key="paramId"
+      ref="tableRef"
+    >
       <el-table-column type="selection" width="50" align="center" fixed />
-      <el-table-column label="序号" type="index" width="60" align="center" fixed />
+      <el-table-column label="序号" width="80" align="center" fixed>
+        <template #default="scope">
+          <div class="sort-handle" style="cursor: move;">
+            <el-icon><DCaret /></el-icon>
+            <span style="margin-left: 5px;">{{ scope.$index + 1 }}</span>
+          </div>
+        </template>
+      </el-table-column>
       <el-table-column label="单元类型" align="center" prop="unitType" width="100" fixed>
         <template #default="scope">
           <el-tag :type="getUnitTypeTag(scope.row.unitType)" size="small">
@@ -277,9 +292,22 @@
 </template>
 
 <script setup name="BasebandParamDef">
-import { listBasebandParamDef, getBasebandParamDef, delBasebandParamDef, addBasebandParamDef, updateBasebandParamDef, exportBasebandParamDef } from "@/api/system/baseband/paramDef"
+import { listBasebandParamDef, getBasebandParamDef, delBasebandParamDef, addBasebandParamDef, updateBasebandParamDef, batchUpdateSortOrder } from "@/api/system/baseband/paramDef"
+import Sortable from 'sortablejs'
+import { useBasebandStore } from '@/store/modules/baseband'
 
 const { proxy } = getCurrentInstance()
+const basebandStore = useBasebandStore()
+const tableRef = ref(null)
+let sortableInstance = null  // 保存Sortable实例
+
+// 组件卸载时销毁Sortable实例
+onBeforeUnmount(() => {
+  if (sortableInstance) {
+    sortableInstance.destroy()
+    sortableInstance = null
+  }
+})
 
 const paramDefList = ref([])
 const open = ref(false)
@@ -479,7 +507,108 @@ function getList() {
     paramDefList.value = response.rows
     total.value = response.total
     loading.value = false
+    // 初始化拖拽排序
+    nextTick(() => {
+      initSortable()
+    })
   })
+}
+
+/** 初始化拖拽排序 */
+function initSortable() {
+  if (!tableRef.value) return
+  
+  // 如果已存在实例，先销毁
+  if (sortableInstance) {
+    sortableInstance.destroy()
+    sortableInstance = null
+  }
+  
+  const tbody = tableRef.value.$el.querySelector('.el-table__body-wrapper tbody')
+  if (!tbody) return
+  
+  sortableInstance = Sortable.create(tbody, {
+    handle: '.sort-handle',
+    animation: 150,
+    onEnd: ({ newIndex, oldIndex }) => {
+      if (newIndex === oldIndex) return
+      
+      // 交换数组中的元素
+      const movedItem = paramDefList.value.splice(oldIndex, 1)[0]
+      paramDefList.value.splice(newIndex, 0, movedItem)
+      
+      // 更新sort_order
+      updateSortOrder()
+    }
+  })
+}
+
+// 防抖定时器
+let updateSortTimer = null
+
+/** 更新排序值并保存到数据库 */
+async function updateSortOrder() {
+  // 清除之前的定时器
+  if (updateSortTimer) {
+    clearTimeout(updateSortTimer)
+  }
+  
+  // 防抖：延迟300ms执行
+  updateSortTimer = setTimeout(async () => {
+    try {
+      loading.value = true
+      
+      // 按单元类型分组计算排序值
+      const unitTypeGroups = {}
+      
+      // 先按单元类型分组
+      paramDefList.value.forEach(item => {
+        if (!unitTypeGroups[item.unitType]) {
+          unitTypeGroups[item.unitType] = []
+        }
+        unitTypeGroups[item.unitType].push(item)
+      })
+      
+      // 为每个单元类型内的参数分配排序值
+      const updates = []
+      const updatedUnitTypes = new Set()
+      Object.keys(unitTypeGroups).forEach(unitType => {
+        unitTypeGroups[unitType].forEach((item, index) => {
+          const sortOrder = index + 1
+          updates.push({
+            paramId: item.paramId,
+            sortOrder: sortOrder
+          })
+          // 同时更新本地数据
+          item.sortOrder = sortOrder
+          updatedUnitTypes.add(unitType)
+        })
+      })
+      
+      // 参数校验
+      if (updates.length === 0) {
+        proxy.$modal.msgWarning('没有需要更新的参数')
+        return
+      }
+      
+      // 批量更新排序
+      await batchUpdateSortOrder(updates)
+      
+      proxy.$modal.msgSuccess('排序已更新')
+      
+      // 通知其他页面参数定义已更新
+      updatedUnitTypes.forEach(unitType => {
+        basebandStore.notifyParamDefUpdated(unitType)
+      })
+    } catch (error) {
+      proxy.$modal.msgError('排序更新失败：' + (error.message || '未知错误'))
+      console.error('更新排序失败:', error)
+      // 失败时重新加载列表恢复原状态
+      getList()
+    } finally {
+      loading.value = false
+    }
+  }, 300)
 }
 
 /** 取消按钮 */
@@ -560,16 +689,24 @@ function submitForm() {
       }
       
       if (form.value.paramId != undefined) {
-        updateBasebandParamDef(form.value).then(response => {
+        updateBasebandParamDef(form.value).then(() => {
           proxy.$modal.msgSuccess("修改成功")
           open.value = false
           getList()
+          // 通知其他页面参数定义已更新
+          basebandStore.notifyParamDefUpdated(form.value.unitType)
+        }).catch(error => {
+          proxy.$modal.msgError("修改失败：" + (error.message || '未知错误'))
         })
       } else {
-        addBasebandParamDef(form.value).then(response => {
+        addBasebandParamDef(form.value).then(() => {
           proxy.$modal.msgSuccess("新增成功")
           open.value = false
           getList()
+          // 通知其他页面参数定义已更新
+          basebandStore.notifyParamDefUpdated(form.value.unitType)
+        }).catch(error => {
+          proxy.$modal.msgError("新增失败：" + (error.message || '未知错误'))
         })
       }
     }
@@ -578,12 +715,18 @@ function submitForm() {
 
 /** 删除按钮操作 */
 function handleDelete(row) {
-  const paramIds = row.paramId || ids.value
+  const paramIds = row?.paramId || ids.value
+  const unitType = row?.unitType
+  
   proxy.$modal.confirm('是否确认删除参数编号为"' + paramIds + '"的数据项？').then(function() {
     return delBasebandParamDef(paramIds)
   }).then(() => {
     getList()
     proxy.$modal.msgSuccess("删除成功")
+    // 通知其他页面参数定义已更新
+    if (unitType) {
+      basebandStore.notifyParamDefUpdated(unitType)
+    }
   }).catch(() => {})
 }
 

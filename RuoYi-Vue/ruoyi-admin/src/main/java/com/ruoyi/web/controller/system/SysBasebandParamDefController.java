@@ -101,4 +101,26 @@ public class SysBasebandParamDefController extends BaseController
     {
         return toAjax(sysBasebandParamDefService.deleteSysBasebandParamDefByParamIds(paramIds));
     }
+
+    /**
+     * 批量更新参数排序
+     */
+    @PreAuthorize("@ss.hasPermi('system:basebandParam:edit')")
+    @Log(title = "基带参数定义-排序", businessType = BusinessType.UPDATE)
+    @PutMapping("/sort")
+    public AjaxResult batchUpdateSortOrder(@RequestBody List<SysBasebandParamDef> paramList)
+    {
+        try {
+            if (paramList == null || paramList.isEmpty()) {
+                return error("参数列表不能为空");
+            }
+            int result = sysBasebandParamDefService.batchUpdateSortOrder(paramList);
+            return result > 0 ? success("排序更新成功") : error("排序更新失败");
+        } catch (IllegalArgumentException e) {
+            return error(e.getMessage());
+        } catch (Exception e) {
+            logger.error("批量更新参数排序失败", e);
+            return error("排序更新失败：" + e.getMessage());
+        }
+    }
 }

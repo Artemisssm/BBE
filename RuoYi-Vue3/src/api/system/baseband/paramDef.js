@@ -51,3 +51,12 @@ export function exportBasebandParamDef(query) {
     params: query
   })
 }
+
+// 批量更新参数排序
+export function batchUpdateSortOrder(data) {
+  return request({
+    url: '/system/baseband/param/sort',
+    method: 'put',
+    data: data
+  })
+}

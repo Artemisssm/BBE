@@ -2,8 +2,10 @@ package com.ruoyi.system.service.impl;
 
 import java.util.List;
 import com.ruoyi.common.utils.DateUtils;
+import com.ruoyi.common.utils.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import com.ruoyi.system.mapper.SysBasebandParamDefMapper;
 import com.ruoyi.system.domain.SysBasebandParamDef;
 import com.ruoyi.system.service.ISysBasebandParamDefService;
@@ -91,5 +93,35 @@ public class SysBasebandParamDefServiceImpl implements ISysBasebandParamDefServi
     public int deleteSysBasebandParamDefByParamId(Long paramId)
     {
         return sysBasebandParamDefMapper.deleteSysBasebandParamDefByParamId(paramId);
+    }
+
+    /**
+     * 批量更新参数排序
+     * 
+     * @param paramList 参数列表（包含paramId和sortOrder）
+     * @return 结果
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int batchUpdateSortOrder(List<SysBasebandParamDef> paramList)
+    {
+        // 参数校验
+        if (paramList == null || paramList.isEmpty()) {
+            throw new IllegalArgumentException("参数列表不能为空");
+        }
+        
+        int result = 0;
+        for (SysBasebandParamDef param : paramList) {
+            // 校验参数ID和排序值
+            if (param.getParamId() == null) {
+                throw new IllegalArgumentException("参数ID不能为空");
+            }
+            if (param.getSortOrder() == null || param.getSortOrder() < 1) {
+                throw new IllegalArgumentException("排序值必须大于0");
+            }
+            
+            result += sysBasebandParamDefMapper.updateSortOrder(param.getParamId(), param.getSortOrder());
+        }
+        return result;
     }
 }

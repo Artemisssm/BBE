@@ -1,6 +1,7 @@
 package com.ruoyi.system.mapper;
 
 import java.util.List;
+import org.apache.ibatis.annotations.Param;
 import com.ruoyi.system.domain.SysBasebandParamDef;
 
 /**
@@ -66,4 +67,13 @@ public interface SysBasebandParamDefMapper
      * @return 结果
      */
     public int deleteSysBasebandParamDefByParamIds(Long[] paramIds);
+
+    /**
+     * 更新参数排序
+     * 
+     * @param paramId 参数ID
+     * @param sortOrder 排序值
+     * @return 结果
+     */
+    public int updateSortOrder(@Param("paramId") Long paramId, @Param("sortOrder") Integer sortOrder);
 }

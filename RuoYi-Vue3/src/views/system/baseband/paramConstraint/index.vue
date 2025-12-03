@@ -411,7 +411,7 @@
                   </span>
                 </span>
                 <span v-else>
-                  支持：==（等于）、!=（不等于）、>、<、>=、<=
+                  支持：==（等于）、!=（不等于）、&gt;、&lt;、&gt;=、&lt;=
                 </span>
               </div>
             </el-form-item>
