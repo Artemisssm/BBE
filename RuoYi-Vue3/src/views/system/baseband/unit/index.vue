@@ -263,6 +263,7 @@
 <script setup name="BasebandUnit">
 import { listBasebandUnit, getBasebandUnit, delBasebandUnit, addBasebandUnit, updateBasebandUnit, exportBasebandUnit } from "@/api/system/baseband/unit"
 import useTagsViewStore from '@/store/modules/tagsView'
+import { notifyUnitChanged } from '@/utils/basebandEvent'
 
 const { proxy } = getCurrentInstance()
 const { sys_normal_disable } = proxy.useDict("sys_normal_disable")
@@ -619,6 +620,8 @@ function submitForm() {
           proxy.$modal.msgSuccess("修改成功")
           open.value = false
           getList()
+          // 通知其他页面单元已更新
+          notifyUnitChanged('update', updateData)
         })
       } else {
         // 新增模式：批量创建
@@ -649,6 +652,8 @@ function submitForm() {
           proxy.$modal.msgSuccess(`成功创建 ${orderedUnitTypes.length} 个基带单元`)
           open.value = false
           getList()
+          // 通知其他页面单元已新增
+          notifyUnitChanged('add', { count: orderedUnitTypes.length })
         }).catch(error => {
           proxy.$modal.msgError("批量创建失败：" + error.message)
         })
@@ -668,6 +673,8 @@ function handleDelete(row) {
     
     getList()
     proxy.$modal.msgSuccess("删除成功")
+    // 通知其他页面单元已删除
+    notifyUnitChanged('delete', { unitIds })
   }).catch(() => {})
 }
 
