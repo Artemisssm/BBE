@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.SysBasebandMacroParamMapper">
+
+    <!-- 查询宏参数配置（关联参数定义） -->
+    <select id="selectMacroParams" resultType="map">
+        SELECT 
+            mp.id,
+            mp.macro_id AS macroId,
+            mp.param_id AS paramId,
+            mp.param_value AS paramValue,
+            pd.param_name AS paramName,
+            pd.param_code AS paramCode,
+            pd.value_type AS valueType,
+            pd.enum_options AS enumOptions,
+            pd.min_value AS minValue,
+            pd.max_value AS `maxValue`,
+            pd.default_value AS `defaultValue`,
+            pd.bit_width_type AS bitWidthType,
+            pd.sort_order AS sortOrder
+        FROM sys_baseband_macro_param mp
+        LEFT JOIN sys_baseband_param_def pd ON mp.param_id = pd.param_id
+        WHERE mp.macro_id = #{macroId}
+        ORDER BY pd.sort_order
+    </select>
+
+    <!-- 删除宏的所有参数配置 -->
+    <delete id="deleteMacroParamsByMacroId">
+        DELETE FROM sys_baseband_macro_param WHERE macro_id = #{macroId}
+    </delete>
+
+    <!-- 批量删除宏的参数配置 -->
+    <delete id="deleteMacroParamsByMacroIds">
+        DELETE FROM sys_baseband_macro_param WHERE macro_id IN
+        <foreach item="macroId" collection="macroIds" open="(" separator="," close=")">
+            #{macroId}
+        </foreach>
+    </delete>
+
+    <!-- 插入宏参数配置 -->
+    <insert id="insertMacroParam">
+        INSERT INTO sys_baseband_macro_param (macro_id, param_id, param_value, create_time)
+        VALUES (#{macroId}, #{paramId}, #{paramValue}, NOW())
+    </insert>
+
+    <!-- 统计宏的参数数量 -->
+    <select id="countMacroParams" resultType="int">
+        SELECT COUNT(*) FROM sys_baseband_macro_param WHERE macro_id = #{macroId}
+    </select>
+
+</mapper>

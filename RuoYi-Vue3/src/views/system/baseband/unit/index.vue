@@ -79,7 +79,79 @@
       <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>
 
-    <el-table v-loading="loading" :data="unitList" @selection-change="handleSelectionChange" class="baseband-table" :row-class-name="getRowClassName">
+    <!-- 视图切换 -->
+    <div class="view-switch">
+      <el-radio-group v-model="viewMode" size="small">
+        <el-radio-button label="task">按任务分组</el-radio-button>
+        <el-radio-button label="list">列表视图</el-radio-button>
+      </el-radio-group>
+    </div>
+
+    <!-- 任务分组视图 -->
+    <div v-if="viewMode === 'task'" class="task-group-view">
+      <div v-for="(task, taskKey) in groupedUnits" :key="taskKey" class="task-card">
+        <div class="task-header" :class="getTaskHeaderClass(task.boardNo)">
+          <div class="task-info">
+            <el-icon class="task-icon"><Cpu /></el-icon>
+            <span class="task-title">{{ task.boardName }} - {{ task.fpgaName }}</span>
+            <el-tag :type="getUnitNameTag(task.unitName)" size="small" effect="plain" style="margin-left: 10px;">
+              {{ task.unitName }}
+            </el-tag>
+            <el-tag v-if="task.modeType" :type="getModeTypeTag(task.modeType)" size="small" style="margin-left: 5px;">
+              {{ task.modeType }}
+            </el-tag>
+          </div>
+          <div class="task-actions">
+            <el-button type="danger" size="small" plain icon="Delete" @click="handleDeleteTask(task)">
+              删除任务
+            </el-button>
+          </div>
+        </div>
+        <!-- 宏配置信息 -->
+        <div class="task-macro" v-if="task.macroName">
+          <el-icon><MagicStick /></el-icon>
+          <span>宏配置：{{ task.macroName }}</span>
+        </div>
+        <div class="task-units">
+          <div v-for="unit in task.units" :key="unit.unitId" class="unit-item" :class="getUnitItemClass(unit.unitType)">
+            <div class="unit-type">
+              <el-tag :type="getUnitTypeTag(unit.unitType)" size="default">
+                {{ getUnitTypeName(unit.unitType) }}
+              </el-tag>
+            </div>
+            <div class="unit-info">
+              <span class="unit-version" v-if="unit.version">v{{ unit.version }}</span>
+              <dict-tag :options="sys_normal_disable" :value="unit.status" size="small" />
+            </div>
+            <div class="unit-actions">
+              <el-button link type="primary" size="small" @click="handleConfig(unit)">配置</el-button>
+              <el-button link type="primary" size="small" @click="handleUpdate(unit)">修改</el-button>
+              <el-button link type="danger" size="small" @click="handleDelete(unit)">删除</el-button>
+            </div>
+          </div>
+          <!-- 缺失的单元类型提示 -->
+          <div v-for="missingType in task.missingTypes" :key="missingType" class="unit-item missing">
+            <div class="unit-type">
+              <el-tag type="info" size="default" effect="plain">
+                {{ getUnitTypeName(missingType) }}
+              </el-tag>
+            </div>
+            <div class="unit-info">
+              <span style="color: #909399; font-size: 12px;">未创建</span>
+            </div>
+            <div class="unit-actions">
+              <el-button link type="primary" size="small" @click="handleAddMissing(task, missingType)">
+                + 添加
+              </el-button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <el-empty v-if="Object.keys(groupedUnits).length === 0" description="暂无基带单元数据" />
+    </div>
+
+    <!-- 列表视图 -->
+    <el-table v-else v-loading="loading" :data="unitList" @selection-change="handleSelectionChange" class="baseband-table" :row-class-name="getRowClassName">
       <el-table-column type="selection" width="50" align="center" fixed />
       <el-table-column label="序号" type="index" width="70" align="center" :index="indexMethod" fixed />
       <el-table-column label="板卡资源" align="center" prop="channelNo" min-width="160" fixed sortable :sort-method="sortByResource">
@@ -242,6 +314,70 @@
             </el-form-item>
           </el-col>
         </el-row>
+        <!-- 宏配置选择 -->
+        <el-divider content-position="left">
+          <el-icon><MagicStick /></el-icon>
+          宏配置（可选）
+        </el-divider>
+        <el-row>
+          <el-col :span="24">
+            <el-form-item label="应用宏配置" prop="macroTaskKey">
+              <el-select 
+                v-model="form.macroTaskKey" 
+                placeholder="请选择宏配置（可选）" 
+                clearable 
+                style="width: 100%"
+                :disabled="!canSelectMacro"
+              >
+                <el-option
+                  v-for="task in macroTaskList"
+                  :key="task.taskKey"
+                  :label="task.baseName"
+                  :value="task.taskKey"
+                >
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>{{ task.baseName }}</span>
+                    <div>
+                      <el-tag v-if="task.hasDefault" type="success" size="small">含默认</el-tag>
+                      <el-tag type="info" size="small" style="margin-left: 5px;">
+                        {{ task.macros.length }}个宏
+                      </el-tag>
+                    </div>
+                  </div>
+                </el-option>
+              </el-select>
+              <div style="color: #909399; font-size: 12px; margin-top: 5px;">
+                <span v-if="selectedMacroTask">
+                  <el-icon><InfoFilled /></el-icon>
+                  {{ selectedMacroTask.description || `将为${form.unitTypes.length}个单元类型自动应用预设参数` }}
+                </span>
+                <span v-else-if="!canSelectMacro">
+                  请先选择单元类型和模式类型
+                </span>
+                <span v-else-if="macroTaskList.length === 0">
+                  暂无匹配的宏配置（需包含所有选中的单元类型）
+                </span>
+                <span v-else>
+                  选择宏配置可自动应用预设参数，提升配置效率
+                </span>
+              </div>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row v-if="form.macroTaskKey">
+          <el-col :span="24">
+            <el-form-item label="自动下发" prop="autoDispatch">
+              <el-checkbox v-model="form.autoDispatch">
+                创建单元后立即下发参数到硬件
+              </el-checkbox>
+              <div style="color: #e6a23c; font-size: 12px; margin-top: 5px;">
+                <el-icon><Warning /></el-icon>
+                勾选后将自动应用宏参数并通过组播下发到硬件设备
+              </div>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        
         <el-row>
           <el-col :span="24">
             <el-form-item label="备注" prop="remark">
@@ -264,6 +400,7 @@
 import { listBasebandUnit, getBasebandUnit, delBasebandUnit, addBasebandUnit, updateBasebandUnit, exportBasebandUnit } from "@/api/system/baseband/unit"
 import useTagsViewStore from '@/store/modules/tagsView'
 import { notifyUnitChanged } from '@/utils/basebandEvent'
+import { getAvailableMacros } from '@/api/system/baseband/macro'
 
 const { proxy } = getCurrentInstance()
 const { sys_normal_disable } = proxy.useDict("sys_normal_disable")
@@ -279,6 +416,7 @@ const single = ref(true)
 const multiple = ref(true)
 const total = ref(0)
 const title = ref("")
+const viewMode = ref('task')  // 默认按任务分组视图
 
 // 板卡资源列表（假设有4块板，每块板2个FPGA）
 const totalBoards = 4
@@ -289,6 +427,82 @@ const availableResources = ref([])
 
 // 已占用资源
 const occupiedResources = ref(new Set())
+
+// 宏相关
+const availableMacros = ref([])
+const macroTaskList = ref([])  // 按任务分组的宏列表
+const selectedMacroTask = computed(() => {
+  return macroTaskList.value.find(t => t.taskKey === form.value.macroTaskKey)
+})
+const canSelectMacro = computed(() => {
+  return form.value.unitTypes && form.value.unitTypes.length > 0 && form.value.modeType
+})
+
+// 按任务分组的单元数据
+const groupedUnits = computed(() => {
+  const groups = {}
+  const allUnitTypes = ['ENCODE', 'MODULATE', 'DEMODULATE', 'DECODE']
+  
+  unitList.value.forEach(unit => {
+    const boardNo = Math.floor((unit.channelNo - 1) / fpgasPerBoard) + 1
+    const fpgaNo = (unit.channelNo - 1) % fpgasPerBoard
+    // 使用 板卡+FPGA+链路模式+模式类型 作为任务的唯一标识
+    const taskKey = `${boardNo}-${fpgaNo}-${unit.unitName}-${unit.modeType || 'default'}`
+    
+    if (!groups[taskKey]) {
+      groups[taskKey] = {
+        taskKey,
+        boardNo,
+        fpgaNo,
+        channelNo: unit.channelNo,
+        boardName: `板${boardNo}`,
+        fpgaName: unit.unitName === '返向高速数传' ? '整板' : `FPGA${fpgaNo}`,
+        unitName: unit.unitName,
+        modeType: unit.modeType,
+        macroName: null,  // 宏配置名称
+        units: [],
+        existingTypes: new Set()
+      }
+    }
+    
+    groups[taskKey].units.push(unit)
+    groups[taskKey].existingTypes.add(unit.unitType)
+    
+    // 提取宏配置名称（取第一个有宏配置的单元的宏名称，并去掉单元类型后缀）
+    if (unit.macroName && !groups[taskKey].macroName) {
+      let macroName = unit.macroName
+      // 去掉括号中的单元类型
+      const match = macroName.match(/^(.+?)\s*[\(（](编码|调制|解调|译码)[\)）]$/)
+      if (match) {
+        macroName = match[1]
+      }
+      groups[taskKey].macroName = macroName
+    }
+  })
+  
+  // 计算每个任务缺失的单元类型
+  Object.values(groups).forEach(task => {
+    task.missingTypes = allUnitTypes.filter(type => !task.existingTypes.has(type))
+    // 按固定顺序排序单元
+    task.units.sort((a, b) => {
+      return allUnitTypes.indexOf(a.unitType) - allUnitTypes.indexOf(b.unitType)
+    })
+  })
+  
+  // 按板卡和FPGA排序
+  const sortedGroups = {}
+  Object.keys(groups)
+    .sort((a, b) => {
+      const [boardA, fpgaA] = a.split('-').map(Number)
+      const [boardB, fpgaB] = b.split('-').map(Number)
+      return boardA - boardB || fpgaA - fpgaB
+    })
+    .forEach(key => {
+      sortedGroups[key] = groups[key]
+    })
+  
+  return sortedGroups
+})
 
 const data = reactive({
   form: {},
@@ -426,6 +640,56 @@ function getRowClassName({ row }) {
   return `board-row-${boardNo} fpga-row-${fpgaNo}`
 }
 
+/** 获取任务卡片头部样式类 */
+function getTaskHeaderClass(boardNo) {
+  return `task-header-board-${boardNo}`
+}
+
+/** 获取单元项样式类 */
+function getUnitItemClass(unitType) {
+  const classMap = {
+    'ENCODE': 'unit-encode',
+    'MODULATE': 'unit-modulate',
+    'DEMODULATE': 'unit-demodulate',
+    'DECODE': 'unit-decode'
+  }
+  return classMap[unitType] || ''
+}
+
+/** 删除整个任务（同一FPGA上的所有单元） */
+function handleDeleteTask(task) {
+  const unitIds = task.units.map(u => u.unitId)
+  const unitCount = unitIds.length
+  
+  proxy.$modal.confirm(`是否确认删除该任务下的 ${unitCount} 个单元？\n（${task.boardName}-${task.fpgaName} ${task.unitName}）`).then(() => {
+    return delBasebandUnit(unitIds)
+  }).then(() => {
+    closeRelatedTabs(unitIds)
+    getList()
+    proxy.$modal.msgSuccess(`成功删除 ${unitCount} 个单元`)
+    notifyUnitChanged('delete', { unitIds })
+  }).catch(() => {})
+}
+
+/** 添加缺失的单元类型 */
+function handleAddMissing(task, unitType) {
+  reset()
+  updateOccupiedResources()
+  
+  // 预填充表单
+  form.value.unitName = task.unitName
+  form.value.modeType = task.modeType
+  form.value.channelNo = task.channelNo
+  form.value.unitTypes = [unitType]
+  form.value.status = '0'
+  
+  // 更新可用资源
+  updateAvailableResources()
+  
+  open.value = true
+  title.value = `添加${getUnitTypeName(unitType)}单元`
+}
+
 /** 板卡资源排序方法 */
 function sortByResource(a, b) {
   return a.channelNo - b.channelNo
@@ -526,6 +790,78 @@ function cancel() {
   reset()
 }
 
+/** 加载可用宏列表（按任务分组） */
+function loadAvailableMacros() {
+  if (!form.value.unitTypes || form.value.unitTypes.length === 0) {
+    availableMacros.value = []
+    macroTaskList.value = []
+    return
+  }
+  
+  const modeType = form.value.modeType
+  
+  // 加载所有选中单元类型的宏
+  const promises = form.value.unitTypes.map(unitType => 
+    getAvailableMacros(unitType, modeType)
+  )
+  
+  Promise.all(promises).then(responses => {
+    // 合并所有宏
+    const allMacros = []
+    responses.forEach(response => {
+      allMacros.push(...(response.data || []))
+    })
+    
+    availableMacros.value = allMacros
+    
+    // 按任务分组（提取基础名称）
+    const taskMap = {}
+    allMacros.forEach(macro => {
+      // 提取基础宏名称（去掉括号中的单元类型）
+      let baseName = macro.macroName
+      const match = baseName.match(/^(.+?)\s*[\(（](编码|调制|解调|译码)[\)）]$/)
+      if (match) {
+        baseName = match[1]
+      }
+      
+      const taskKey = `${baseName}-${macro.modeType || 'default'}`
+      
+      if (!taskMap[taskKey]) {
+        taskMap[taskKey] = {
+          taskKey,
+          baseName,
+          modeType: macro.modeType,
+          description: macro.description,
+          macros: [],
+          unitTypes: new Set(),
+          hasDefault: false
+        }
+      }
+      
+      taskMap[taskKey].macros.push(macro)
+      taskMap[taskKey].unitTypes.add(macro.unitType)
+      if (macro.isDefault === '1') {
+        taskMap[taskKey].hasDefault = true
+      }
+    })
+    
+    // 转换为数组，只保留包含所有选中单元类型的任务
+    const selectedTypes = new Set(form.value.unitTypes)
+    macroTaskList.value = Object.values(taskMap).filter(task => {
+      // 检查任务是否包含所有选中的单元类型
+      return form.value.unitTypes.every(type => task.unitTypes.has(type))
+    })
+    
+    // 自动选中含默认宏的任务
+    if (!form.value.macroTaskKey && macroTaskList.value.length > 0) {
+      const defaultTask = macroTaskList.value.find(t => t.hasDefault)
+      if (defaultTask) {
+        form.value.macroTaskKey = defaultTask.taskKey
+      }
+    }
+  })
+}
+
 /** 表单重置 */
 function reset() {
   form.value = {
@@ -536,10 +872,15 @@ function reset() {
     channelNo: undefined,
     status: "0",
     version: undefined,
-    remark: undefined
+    remark: undefined,
+    macroId: undefined,
+    macroTaskKey: undefined,  // 宏任务标识
+    autoDispatch: false
   }
   proxy.resetForm("unitRef")
+  macroTaskList.value = []
   availableResources.value = []
+  availableMacros.value = []
 }
 
 /** 链路模式变化处理 */
@@ -634,6 +975,15 @@ function submitForm() {
         // 按顺序创建单元（使用串行方式确保顺序）
         const createUnitsSequentially = async () => {
           for (const unitType of orderedUnitTypes) {
+            // 查找对应的宏ID
+            let macroId = null
+            if (form.value.macroTaskKey && selectedMacroTask.value) {
+              const matchingMacro = selectedMacroTask.value.macros.find(macro => macro.unitType === unitType)
+              if (matchingMacro) {
+                macroId = matchingMacro.macroId
+              }
+            }
+            
             const unitData = {
               unitName: form.value.unitName,
               unitType: unitType,
@@ -641,7 +991,8 @@ function submitForm() {
               modeType: form.value.modeType,
               status: form.value.status,
               version: form.value.version,
-              remark: form.value.remark
+              remark: form.value.remark,
+              macroId: macroId  // 添加宏ID
             }
             await addBasebandUnit(unitData)
           }
@@ -740,6 +1091,17 @@ function handleExport() {
     ...queryParams.value
   }, `baseband_unit_${new Date().getTime()}.xlsx`)
 }
+
+// 监听单元类型和模式类型变化，加载可用宏
+watch([() => form.value.unitTypes, () => form.value.modeType], () => {
+  if (canSelectMacro.value) {
+    loadAvailableMacros()
+  } else {
+    availableMacros.value = []
+    macroTaskList.value = []
+    form.value.macroTaskKey = undefined
+  }
+}, { deep: true })
 
 getList()
 </script>
@@ -992,5 +1354,166 @@ getList()
   background: #fff;
   border-radius: 8px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+}
+
+/* 视图切换样式 */
+.view-switch {
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* 任务分组视图样式 */
+.task-group-view {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
+  gap: 16px;
+}
+
+.task-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.task-card:hover {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
+}
+
+.task-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  color: #fff;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.task-header-board-1 {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.task-header-board-2 {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.task-header-board-3 {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.task-header-board-4 {
+  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+}
+
+.task-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.task-icon {
+  font-size: 22px;
+}
+
+.task-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.task-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.task-macro {
+  padding: 8px 18px;
+  background: linear-gradient(135deg, rgba(103, 58, 183, 0.1) 0%, rgba(156, 39, 176, 0.1) 100%);
+  border-bottom: 1px solid #ebeef5;
+  font-size: 13px;
+  color: #673ab7;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.task-macro .el-icon {
+  font-size: 16px;
+}
+
+.task-units {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.unit-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #409eff;
+  transition: all 0.2s ease;
+}
+
+.unit-item:hover {
+  background: #ecf5ff;
+}
+
+.unit-item.missing {
+  border-left-color: #dcdfe6;
+  background: #fafafa;
+  opacity: 0.7;
+}
+
+.unit-item.missing:hover {
+  opacity: 1;
+  background: #f5f7fa;
+}
+
+.unit-item.unit-encode {
+  border-left-color: #409eff;
+}
+
+.unit-item.unit-modulate {
+  border-left-color: #67c23a;
+}
+
+.unit-item.unit-demodulate {
+  border-left-color: #e6a23c;
+}
+
+.unit-item.unit-decode {
+  border-left-color: #f56c6c;
+}
+
+.unit-type {
+  min-width: 80px;
+}
+
+.unit-info {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+}
+
+.unit-version {
+  font-size: 12px;
+  color: #909399;
+  background: #e9ecef;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.unit-actions {
+  display: flex;
+  gap: 4px;
 }
 </style>

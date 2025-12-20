@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.SysBasebandMacroMapper">
+    
+    <resultMap type="SysBasebandMacro" id="SysBasebandMacroResult">
+        <result property="macroId"       column="macro_id"       />
+        <result property="macroName"     column="macro_name"     />
+        <result property="macroCode"     column="macro_code"     />
+        <result property="unitType"      column="unit_type"      />
+        <result property="modeType"      column="mode_type"      />
+        <result property="description"   column="description"    />
+        <result property="isDefault"     column="is_default"     />
+        <result property="status"        column="status"         />
+        <result property="sortOrder"     column="sort_order"     />
+        <result property="createBy"      column="create_by"      />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateBy"      column="update_by"      />
+        <result property="updateTime"    column="update_time"    />
+        <result property="remark"        column="remark"         />
+    </resultMap>
+
+    <sql id="selectSysBasebandMacroVo">
+        select macro_id, macro_name, macro_code, unit_type, mode_type, description, 
+               is_default, status, sort_order, create_by, create_time, update_by, update_time, remark
+        from sys_baseband_macro
+    </sql>
+
+    <select id="selectSysBasebandMacroList" parameterType="SysBasebandMacro" resultMap="SysBasebandMacroResult">
+        <include refid="selectSysBasebandMacroVo"/>
+        <where>  
+            <if test="macroName != null and macroName != ''">
+                AND macro_name like concat('%', #{macroName}, '%')
+            </if>
+            <if test="macroCode != null and macroCode != ''">
+                AND macro_code = #{macroCode}
+            </if>
+            <if test="unitType != null and unitType != ''">
+                AND unit_type = #{unitType}
+            </if>
+            <if test="modeType != null and modeType != ''">
+                AND mode_type = #{modeType}
+            </if>
+            <if test="status != null and status != ''">
+                AND status = #{status}
+            </if>
+        </where>
+        order by sort_order, macro_id
+    </select>
+    
+    <select id="selectSysBasebandMacroByMacroId" parameterType="Long" resultMap="SysBasebandMacroResult">
+        <include refid="selectSysBasebandMacroVo"/>
+        where macro_id = #{macroId}
+    </select>
+
+    <select id="selectAvailableMacros" resultMap="SysBasebandMacroResult">
+        <include refid="selectSysBasebandMacroVo"/>
+        <where>
+            status = '0'
+            <if test="unitType != null and unitType != ''">
+                AND unit_type = #{unitType}
+            </if>
+            <if test="modeType != null and modeType != ''">
+                AND (mode_type = #{modeType} OR mode_type IS NULL)
+            </if>
+        </where>
+        order by is_default desc, sort_order, macro_id
+    </select>
+
+    <select id="checkMacroCodeUnique" parameterType="String" resultMap="SysBasebandMacroResult">
+        <include refid="selectSysBasebandMacroVo"/>
+        where macro_code = #{macroCode} limit 1
+    </select>
+        
+    <insert id="insertSysBasebandMacro" parameterType="SysBasebandMacro" useGeneratedKeys="true" keyProperty="macroId">
+        insert into sys_baseband_macro
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="macroName != null and macroName != ''">macro_name,</if>
+            <if test="macroCode != null and macroCode != ''">macro_code,</if>
+            <if test="unitType != null and unitType != ''">unit_type,</if>
+            <if test="modeType != null">mode_type,</if>
+            <if test="description != null">description,</if>
+            <if test="isDefault != null">is_default,</if>
+            <if test="status != null">status,</if>
+            <if test="sortOrder != null">sort_order,</if>
+            <if test="createBy != null">create_by,</if>
+            <if test="remark != null">remark,</if>
+            create_time
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="macroName != null and macroName != ''">#{macroName},</if>
+            <if test="macroCode != null and macroCode != ''">#{macroCode},</if>
+            <if test="unitType != null and unitType != ''">#{unitType},</if>
+            <if test="modeType != null">#{modeType},</if>
+            <if test="description != null">#{description},</if>
+            <if test="isDefault != null">#{isDefault},</if>
+            <if test="status != null">#{status},</if>
+            <if test="sortOrder != null">#{sortOrder},</if>
+            <if test="createBy != null">#{createBy},</if>
+            <if test="remark != null">#{remark},</if>
+            sysdate()
+         </trim>
+    </insert>
+
+    <update id="updateSysBasebandMacro" parameterType="SysBasebandMacro">
+        update sys_baseband_macro
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="macroName != null and macroName != ''">macro_name = #{macroName},</if>
+            <if test="macroCode != null and macroCode != ''">macro_code = #{macroCode},</if>
+            <if test="unitType != null and unitType != ''">unit_type = #{unitType},</if>
+            <if test="modeType != null">mode_type = #{modeType},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="isDefault != null">is_default = #{isDefault},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="sortOrder != null">sort_order = #{sortOrder},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            update_time = sysdate()
+        </trim>
+        where macro_id = #{macroId}
+    </update>
+
+    <delete id="deleteSysBasebandMacroByMacroId" parameterType="Long">
+        delete from sys_baseband_macro where macro_id = #{macroId}
+    </delete>
+
+    <delete id="deleteSysBasebandMacroByMacroIds" parameterType="Long">
+        delete from sys_baseband_macro where macro_id in 
+        <foreach item="macroId" collection="array" open="(" separator="," close=")">
+            #{macroId}
+        </foreach>
+    </delete>
+</mapper>

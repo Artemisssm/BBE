@@ -42,6 +42,12 @@ public class SysBasebandUnit extends BaseEntity
     @Excel(name = "模式类型")
     private String modeType;
 
+    /** 宏配置ID */
+    private Long macroId;
+
+    /** 宏配置名称（非数据库字段，用于显示） */
+    private String macroName;
+
     public void setUnitId(Long unitId) 
     {
         this.unitId = unitId;
@@ -112,6 +118,26 @@ public class SysBasebandUnit extends BaseEntity
         return modeType;
     }
 
+    public void setMacroId(Long macroId) 
+    {
+        this.macroId = macroId;
+    }
+
+    public Long getMacroId() 
+    {
+        return macroId;
+    }
+
+    public void setMacroName(String macroName) 
+    {
+        this.macroName = macroName;
+    }
+
+    public String getMacroName() 
+    {
+        return macroName;
+    }
+
     @Override
     public String toString() {
         return new ToStringBuilder(this,ToStringStyle.MULTI_LINE_STYLE)
@@ -122,6 +148,8 @@ public class SysBasebandUnit extends BaseEntity
             .append("status", getStatus())
             .append("version", getVersion())
             .append("modeType", getModeType())
+            .append("macroId", getMacroId())
+            .append("macroName", getMacroName())
             .append("remark", getRemark())
             .append("createBy", getCreateBy())
             .append("createTime", getCreateTime())
