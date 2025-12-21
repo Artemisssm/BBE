@@ -58,6 +58,74 @@
 
     <!-- 参数配置区域 -->
     <div class="param-config-area">
+      <!-- 帧结构信息 -->
+      <div class="frame-structure-info" v-if="unitInfo.unitId">
+        <div class="frame-header">
+          <h3 class="frame-title">
+            <el-icon><Document /></el-icon>
+            帧结构信息
+          </h3>
+          <el-tag type="info" size="small">UDP组播下发格式</el-tag>
+        </div>
+        
+        <div class="frame-fields">
+          <!-- 帧头 - 可设置 -->
+          <div class="frame-field editable">
+            <div class="field-info">
+              <span class="field-position">[0000-0001]</span>
+              <span class="field-name">帧头:</span>
+              <span class="field-description">固定标识符</span>
+            </div>
+            <div class="field-value">
+              <el-input
+                v-model="frameHeader"
+                placeholder="0x5555"
+                style="width: 120px"
+                @blur="handleFrameHeaderChange"
+                @input="validateFrameHeaderInput"
+              />
+              <span class="field-hex-display">{{ formatFrameHeaderDisplay() }}</span>
+            </div>
+          </div>
+          
+          <!-- 单元类型 - 只显示 -->
+          <div class="frame-field readonly">
+            <div class="field-info">
+              <span class="field-position">[0002]</span>
+              <span class="field-name">单元类型:</span>
+              <span class="field-description">{{ getUnitTypeName(unitInfo.unitType) }}</span>
+            </div>
+            <div class="field-value">
+              <span class="field-hex-display">{{ formatUnitTypeHex() }}</span>
+            </div>
+          </div>
+          
+          <!-- 单元ID - 只显示 -->
+          <div class="frame-field readonly">
+            <div class="field-info">
+              <span class="field-position">[0003-0006]</span>
+              <span class="field-name">单元ID:</span>
+              <span class="field-description">当前单元标识</span>
+            </div>
+            <div class="field-value">
+              <span class="field-hex-display">{{ formatUnitIdHex() }}</span>
+            </div>
+          </div>
+          
+          <!-- 参数数量 - 只显示 -->
+          <div class="frame-field readonly">
+            <div class="field-info">
+              <span class="field-position">[0007-0008]</span>
+              <span class="field-name">参数数量:</span>
+              <span class="field-description">启用的参数个数</span>
+            </div>
+            <div class="field-value">
+              <span class="field-hex-display">{{ formatParamCountHex() }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
       <!-- 工具栏 -->
       <div class="config-toolbar" v-if="paramList.length > 0">
         <div class="toolbar-left">
@@ -72,8 +140,19 @@
           <el-tag type="info" effect="plain">
             共 {{ filteredParamList.length }} 个参数
           </el-tag>
+          <el-tag type="success" effect="plain">
+            已启用 {{ enabledCount }} 个
+          </el-tag>
         </div>
         <div class="toolbar-right">
+          <el-button-group class="enable-btn-group">
+            <el-button type="success" size="default" @click="handleEnableAll" :icon="Open">
+              全部启用
+            </el-button>
+            <el-button type="warning" size="default" @click="handleDisableAll" :icon="TurnOff">
+              全部禁用
+            </el-button>
+          </el-button-group>
           <el-radio-group v-model="viewMode" size="default">
             <el-radio-button value="grid">
               <el-icon><Grid /></el-icon>
@@ -102,19 +181,32 @@
                 <span class="param-name">{{ param.paramName }}</span>
                 <span class="param-code">{{ param.paramCode }}</span>
               </div>
-              <div class="param-type-indicator" :class="getValueTypeClass(param.valueType)">
-                {{ getValueTypeName(param.valueType) }}
+              <div class="param-header-right">
+                <el-switch
+                  v-model="param.enabled"
+                  size="small"
+                  :active-text="''"
+                  :inactive-text="''"
+                  @change="handleEnableChange(param)"
+                  class="param-enable-switch"
+                />
+                <div class="param-type-indicator" :class="getValueTypeClass(param.valueType)">
+                  {{ getValueTypeName(param.valueType) }}
+                </div>
+                <div class="param-bitwidth-indicator" v-if="param.bitWidthType">
+                  {{ param.bitWidthType }}
+                </div>
               </div>
             </div>
 
             <!-- 参数控件 -->
-            <div class="param-control">
+            <div class="param-control" :class="{ 'param-control-disabled': !param.enabled }">
               <div v-if="param.valueType === 'ENUM'" class="control-enum">
                 <el-select
                   v-model="param.rawValue"
                   placeholder="请选择"
                   class="param-select"
-                  :disabled="param.disabled"
+                  :disabled="param.disabled || !param.enabled"
                   popper-class="baseband-select-popper"
                   @change="handleParamChange(param)"
                 >
@@ -123,7 +215,13 @@
                     :key="value"
                     :label="label"
                     :value="value"
-                  />
+                  >
+                    <span class="enum-option-display">
+                      <span class="enum-value">{{ value }}</span>
+                      <span class="enum-separator"> - </span>
+                      <span class="enum-label">{{ label }}</span>
+                    </span>
+                  </el-option>
                 </el-select>
               </div>
 
@@ -134,7 +232,7 @@
                   :max="param.maxValue"
                   :precision="2"
                   :step="0.01"
-                  :disabled="param.disabled"
+                  :disabled="param.disabled || !param.enabled"
                   controls-position="right"
                   class="param-input-number"
                   @change="handleParamChange(param)"
@@ -145,7 +243,7 @@
                 <el-input
                   v-model="param.rawValue"
                   placeholder="0x0000"
-                  :disabled="param.disabled"
+                  :disabled="param.disabled || !param.enabled"
                   @change="handleParamChange(param)"
                   class="param-input-hex"
                 >
@@ -159,11 +257,25 @@
                   :min="param.minValue"
                   :max="param.maxValue"
                   :step="1"
-                  :disabled="param.disabled"
+                  :disabled="param.disabled || !param.enabled"
                   @change="handleParamChange(param)"
                   controls-position="right"
                   class="param-input-number"
                 />
+              </div>
+              
+              <!-- 禁用时显示当前值提示 -->
+              <div v-if="!param.enabled" class="disabled-hint">
+                <el-icon><InfoFilled /></el-icon>
+                <span v-if="param.valueType === 'ENUM'">
+                  使用固定值: {{ param.rawValue }} - {{ getEnumLabel(param) }}
+                </span>
+                <span v-else-if="param.valueType === 'HEX'">
+                  使用固定值: 0x{{ param.rawValue }}
+                </span>
+                <span v-else>
+                  使用固定值: {{ param.rawValue }}
+                </span>
               </div>
             </div>
 
@@ -175,7 +287,12 @@
               </div>
               <div v-if="param.minValue !== null && param.maxValue !== null" class="param-range">
                 <span class="label">范围:</span>
-                <span class="value">{{ param.minValue }} ~ {{ param.maxValue }}</span>
+                <span class="value" v-if="param.valueType === 'HEX'">
+                  0x{{ formatHexValue(param.minValue) }} ~ 0x{{ formatHexValue(param.maxValue) }}
+                </span>
+                <span class="value" v-else>
+                  {{ param.minValue }} ~ {{ param.maxValue }}
+                </span>
               </div>
               <div v-if="param.constraintHint" class="param-constraint-hint">
                 <el-icon class="hint-icon"><InfoFilled /></el-icon>
@@ -189,6 +306,15 @@
         <div v-else class="param-list" v-loading="loading">
           <el-table :data="filteredParamList" stripe border>
             <el-table-column type="index" label="序号" width="60" align="center" />
+            <el-table-column label="启用" width="70" align="center">
+              <template #default="scope">
+                <el-switch
+                  v-model="scope.row.enabled"
+                  size="small"
+                  @change="handleEnableChange(scope.row)"
+                />
+              </template>
+            </el-table-column>
             <el-table-column label="参数名称" prop="paramName" min-width="150" show-overflow-tooltip>
               <template #default="scope">
                 <div class="list-param-name">
@@ -204,13 +330,18 @@
                 </el-tag>
               </template>
             </el-table-column>
+            <el-table-column label="位宽" prop="bitWidthType" width="70" align="center">
+              <template #default="scope">
+                <span class="bitwidth-text">{{ scope.row.bitWidthType || 'U32' }}</span>
+              </template>
+            </el-table-column>
             <el-table-column label="参数值" prop="rawValue" width="280" align="center">
               <template #default="scope">
                 <div v-if="scope.row.valueType === 'ENUM'" class="list-control">
                   <el-select
                     v-model="scope.row.rawValue"
                     placeholder="请选择"
-                    :disabled="scope.row.disabled"
+                    :disabled="scope.row.disabled || !scope.row.enabled"
                     style="width: 100%"
                     @change="handleParamChange(scope.row)"
                   >
@@ -219,7 +350,13 @@
                       :key="value"
                       :label="label"
                       :value="value"
-                    />
+                    >
+                      <span class="enum-option-display">
+                        <span class="enum-value">{{ value }}</span>
+                        <span class="enum-separator"> - </span>
+                        <span class="enum-label">{{ label }}</span>
+                      </span>
+                    </el-option>
                   </el-select>
                 </div>
                 <div v-else-if="scope.row.valueType === 'FLOAT'" class="list-control">
@@ -229,7 +366,7 @@
                     :max="scope.row.maxValue"
                     :precision="2"
                     :step="0.01"
-                    :disabled="scope.row.disabled"
+                    :disabled="scope.row.disabled || !scope.row.enabled"
                     controls-position="right"
                     style="width: 100%"
                     @change="handleParamChange(scope.row)"
@@ -239,7 +376,7 @@
                   <el-input
                     v-model="scope.row.rawValue"
                     placeholder="0x0000"
-                    :disabled="scope.row.disabled"
+                    :disabled="scope.row.disabled || !scope.row.enabled"
                     style="width: 100%"
                     @change="handleParamChange(scope.row)"
                   >
@@ -253,7 +390,7 @@
                     :min="scope.row.minValue"
                     :max="scope.row.maxValue"
                     :step="1"
-                    :disabled="scope.row.disabled"
+                    :disabled="scope.row.disabled || !scope.row.enabled"
                     controls-position="right"
                     style="width: 100%"
                     @change="handleParamChange(scope.row)"
@@ -265,14 +402,31 @@
             <el-table-column label="取值范围" width="120" align="center">
               <template #default="scope">
                 <span v-if="scope.row.minValue !== null && scope.row.maxValue !== null" class="range-text">
-                  {{ scope.row.minValue }} ~ {{ scope.row.maxValue }}
+                  <span v-if="scope.row.valueType === 'HEX'">
+                    0x{{ formatHexValue(scope.row.minValue) }} ~ 0x{{ formatHexValue(scope.row.maxValue) }}
+                  </span>
+                  <span v-else>
+                    {{ scope.row.minValue }} ~ {{ scope.row.maxValue }}
+                  </span>
                 </span>
                 <span v-else>-</span>
               </template>
             </el-table-column>
-            <el-table-column label="约束提示" min-width="150" show-overflow-tooltip>
+            <el-table-column label="约束提示" min-width="180" show-overflow-tooltip>
               <template #default="scope">
-                <div v-if="scope.row.constraintHint" class="constraint-hint-cell">
+                <div v-if="!scope.row.enabled" class="disabled-hint-cell">
+                  <el-icon><InfoFilled /></el-icon>
+                  <span v-if="scope.row.valueType === 'ENUM'">
+                    固定值: {{ scope.row.rawValue }} - {{ getEnumLabel(scope.row) }}
+                  </span>
+                  <span v-else-if="scope.row.valueType === 'HEX'">
+                    固定值: 0x{{ scope.row.rawValue }}
+                  </span>
+                  <span v-else>
+                    固定值: {{ scope.row.rawValue }}
+                  </span>
+                </div>
+                <div v-else-if="scope.row.constraintHint" class="constraint-hint-cell">
                   <el-icon class="hint-icon"><InfoFilled /></el-icon>
                   <span>{{ scope.row.constraintHint }}</span>
                 </div>
@@ -305,11 +459,12 @@
 </template>
 
 <script setup name="BasebandParamValue">
-import { listBasebandParamValue, saveBasebandParamValue, dispatchBasebandParam } from "@/api/system/baseband/paramValue"
+import { listBasebandParamValue, saveBasebandParamValue, dispatchBasebandParam, generateSmartValues } from "@/api/system/baseband/paramValue"
 import { getBasebandUnit } from "@/api/system/baseband/unit"
 import { validateParamConstraint, getAllConstraintsForUnit } from "@/api/system/baseband/paramConstraint"
 import useTagsViewStore from '@/store/modules/tagsView'
 import { useBasebandStore } from '@/store/modules/baseband'
+import { Open, TurnOff } from '@element-plus/icons-vue'
 
 const { proxy } = getCurrentInstance()
 const basebandStore = useBasebandStore()
@@ -330,9 +485,17 @@ let autoSaveTimer = null // 自动保存定时器
 // 约束相关
 const constraintsMap = ref({}) // 约束映射表，key为参数代码，value为约束列表
 
+// 帧结构相关
+const frameHeader = ref('0x5555')
+
 // 板卡资源配置
 const totalBoards = 4
 const fpgasPerBoard = 2
+
+// 计算已启用的参数数量
+const enabledCount = computed(() => {
+  return paramList.value.filter(p => p.enabled).length
+})
 
 /** 获取单元类型名称 */
 function getUnitTypeName(unitType) {
@@ -406,12 +569,122 @@ function validateHexInput(value) {
 
 /** 格式化16进制显示 */
 function formatHexValue(value) {
-  if (!value) return '0x0'
+  if (value === null || value === undefined) return '0'
+  
+  // 如果已经是16进制字符串格式，直接返回（去掉0x前缀）
   const str = String(value)
   if (str.startsWith('0x') || str.startsWith('0X')) {
-    return str.toUpperCase()
+    return str.substring(2).toUpperCase()
   }
-  return '0x' + str.toUpperCase()
+  
+  // 如果是数字，转换为16进制
+  const num = Number(value)
+  if (!isNaN(num)) {
+    return num.toString(16).toUpperCase()
+  }
+  
+  // 其他情况，当作字符串处理
+  return str.toUpperCase()
+}
+
+/** 帧结构相关函数 */
+
+/** 格式化帧头显示 */
+function formatFrameHeaderDisplay() {
+  const parsed = parseFrameHeaderInput(frameHeader.value)
+  if (parsed === null) return '(格式错误)'
+  
+  const hex = parsed.toString(16).toUpperCase().padStart(4, '0')
+  return `${parsed.toString().padStart(5, ' ')} (0x${hex})`
+}
+
+/** 解析帧头输入 */
+function parseFrameHeaderInput(value) {
+  if (!value || value.trim() === '') return null
+  
+  const str = value.trim().toLowerCase()
+  
+  // 16进制格式 (0x开头)
+  if (str.startsWith('0x')) {
+    const hexValue = parseInt(str, 16)
+    return isNaN(hexValue) ? null : hexValue
+  }
+  
+  // 十进制格式
+  const decValue = parseInt(str, 10)
+  return isNaN(decValue) ? null : decValue
+}
+
+/** 验证帧头输入 */
+function validateFrameHeaderInput() {
+  const parsed = parseFrameHeaderInput(frameHeader.value)
+  if (parsed === null && frameHeader.value.trim() !== '') {
+    // 输入格式错误，但不立即提示，等失焦时处理
+  }
+}
+
+/** 处理帧头变化 */
+function handleFrameHeaderChange() {
+  const parsed = parseFrameHeaderInput(frameHeader.value)
+  
+  if (parsed === null) {
+    if (frameHeader.value.trim() !== '') {
+      proxy.$modal.msgError('帧头格式错误，请输入十进制数字或16进制格式 (如: 21845 或 0x5555)')
+      frameHeader.value = '0x5555' // 恢复默认值
+    }
+    return
+  }
+  
+  // 检查范围 (16位无符号整数)
+  if (parsed < 0 || parsed > 65535) {
+    proxy.$modal.msgError('帧头值超出范围，请输入 0-65535 之间的值')
+    frameHeader.value = '0x5555'
+    return
+  }
+  
+  // 更新为标准格式
+  frameHeader.value = '0x' + parsed.toString(16).toUpperCase().padStart(4, '0')
+}
+
+/** 格式化单元类型16进制显示 */
+function formatUnitTypeHex() {
+  const typeMap = {
+    'ENCODE': 0x00,
+    'MODULATE': 0x01,
+    'DEMODULATE': 0x02,
+    'DECODE': 0x03
+  }
+  
+  const code = typeMap[unitInfo.value.unitType] || 0x7F
+  const hex = code.toString(16).toUpperCase().padStart(2, '0')
+  return `${code.toString().padStart(3, ' ')} (0x${hex})`
+}
+
+/** 格式化单元ID16进制显示 */
+function formatUnitIdHex() {
+  const id = unitInfo.value.unitId || 0
+  const bytes = [
+    (id >>> 24) & 0xFF,
+    (id >>> 16) & 0xFF,
+    (id >>> 8) & 0xFF,
+    id & 0xFF
+  ]
+  
+  const hexStr = bytes.map(b => b.toString(16).toUpperCase().padStart(2, '0')).join(' ')
+  return `${hexStr} (${id})`
+}
+
+/** 格式化参数数量16进制显示 */
+function formatParamCountHex() {
+  const count = enabledCount.value
+  const hex = count.toString(16).toUpperCase().padStart(4, '0')
+  const hexBytes = [
+    (count >>> 8) & 0xFF,
+    count & 0xFF
+  ]
+  
+  const hexStr = hexBytes.map(b => b.toString(16).toUpperCase().padStart(2, '0')).join(' ')
+  return `${hexStr} (${count})`
 }
 
 /** 获取值类型标签类型（用于列表视图） */
@@ -441,6 +714,13 @@ function getEnumOptions(enumOptionsStr) {
     console.error('解析枚举选项失败:', e)
     return {}
   }
+}
+
+/** 获取枚举值对应的标签 */
+function getEnumLabel(param) {
+  const options = getEnumOptions(param.enumOptions)
+  const value = String(param.rawValue)
+  return options[value] || value
 }
 
 /** 获取过滤后的枚举选项（应用枚举限制约束） */
@@ -499,12 +779,17 @@ async function getParamList() {
       param.disabled = false
       param.constraintHint = null
       param.limitedEnumOptions = null
+      // 初始化启用状态：如果有valueId说明已配置过，则启用；否则禁用（使用默认值）
+      param.enabled = param.valueId != null
       return param
     })
     filteredParamList.value = paramList.value
     
     // 加载约束规则
     await loadConstraints()
+    
+    // 自动启用所有未启用的参数
+    await autoEnableAllParams()
   } catch (error) {
     console.error('获取参数列表失败:', error)
   } finally {
@@ -651,6 +936,252 @@ function handleSearch() {
     return param.paramName.toLowerCase().includes(keyword) ||
            param.paramCode.toLowerCase().includes(keyword)
   })
+}
+
+/** 自动启用所有参数（页面初始化时调用） */
+async function autoEnableAllParams() {
+  const disabledParams = paramList.value.filter(p => !p.enabled && !p.disabled)
+  if (disabledParams.length === 0) {
+    return // 所有参数已启用，无需处理
+  }
+  
+  try {
+    // 调用后端智能生成符合约束的参数值
+    const { data: smartValues } = await generateSmartValues(unitId.value)
+    
+    if (!smartValues || smartValues.length === 0) {
+      console.warn('无法生成智能参数值，跳过自动启用')
+      return
+    }
+    
+    // 应用智能生成的参数值
+    const paramMap = new Map()
+    smartValues.forEach(smart => {
+      paramMap.set(smart.paramId, smart.rawValue)
+    })
+    
+    // 更新前端参数状态
+    disabledParams.forEach(param => {
+      const smartValue = paramMap.get(param.paramId)
+      if (smartValue !== undefined) {
+        param.enabled = true
+        param.rawValue = smartValue
+      }
+    })
+    
+    // 静默保存到后端（不显示加载状态）
+    await saveBasebandParamValue(unitId.value, smartValues)
+    
+    // 重新获取参数列表以更新valueId
+    const response = await listBasebandParamValue(unitId.value)
+    const updatedParams = response.data || []
+    
+    // 更新paramList中的valueId
+    paramList.value.forEach(param => {
+      const updated = updatedParams.find(u => u.paramId === param.paramId)
+      if (updated && updated.valueId) {
+        param.valueId = updated.valueId
+      }
+    })
+    
+    console.log(`自动启用了 ${smartValues.length} 个参数`)
+    
+  } catch (error) {
+    console.warn('自动启用参数失败:', error)
+    // 自动启用失败不影响页面正常使用，只记录警告
+  }
+}
+
+/** 全部启用 */
+async function handleEnableAll() {
+  const disabledParams = paramList.value.filter(p => !p.enabled && !p.disabled)
+  if (disabledParams.length === 0) {
+    proxy.$modal.msgWarning('所有参数已启用')
+    return
+  }
+  
+  autoSaveStatus.value = {
+    type: 'saving',
+    text: `正在智能生成参数值...`
+  }
+  
+  try {
+    // 调用后端智能生成符合约束的参数值
+    const { data: smartValues } = await generateSmartValues(unitId.value)
+    
+    if (!smartValues || smartValues.length === 0) {
+      throw new Error('无法生成智能参数值')
+    }
+    
+    autoSaveStatus.value = {
+      type: 'saving',
+      text: `正在启用 ${smartValues.length} 个参数...`
+    }
+    
+    // 应用智能生成的参数值
+    const paramMap = new Map()
+    smartValues.forEach(smart => {
+      paramMap.set(smart.paramId, smart.rawValue)
+    })
+    
+    // 更新前端参数状态
+    disabledParams.forEach(param => {
+      const smartValue = paramMap.get(param.paramId)
+      if (smartValue !== undefined) {
+        param.enabled = true
+        param.rawValue = smartValue
+      }
+    })
+    
+    // 保存到后端
+    await saveBasebandParamValue(unitId.value, smartValues)
+    
+    // 刷新列表获取最新的valueId
+    await getParamList()
+    
+    autoSaveStatus.value = {
+      type: 'success',
+      text: `已智能启用 ${smartValues.length} 个参数`
+    }
+    
+    setTimeout(() => {
+      autoSaveStatus.value = null
+    }, 3000)
+    
+  } catch (error) {
+    console.error('智能启用失败:', error)
+    autoSaveStatus.value = {
+      type: 'error',
+      text: '智能启用失败: ' + (error.message || '未知错误')
+    }
+    
+    // 恢复状态
+    disabledParams.forEach(p => p.enabled = false)
+    
+    setTimeout(() => {
+      autoSaveStatus.value = null
+    }, 5000)
+  }
+}
+
+/** 全部禁用 */
+async function handleDisableAll() {
+  const enabledParams = paramList.value.filter(p => p.enabled && !p.disabled)
+  if (enabledParams.length === 0) {
+    proxy.$modal.msgWarning('所有参数已禁用')
+    return
+  }
+  
+  autoSaveStatus.value = {
+    type: 'saving',
+    text: `正在禁用 ${enabledParams.length} 个参数...`
+  }
+  
+  try {
+    // 批量禁用（删除配置）
+    const saveData = enabledParams.map(param => {
+      param.enabled = false
+      return {
+        paramId: param.paramId,
+        rawValue: '',
+        enabled: false
+      }
+    })
+    
+    await saveBasebandParamValue(unitId.value, saveData)
+    
+    // 清除valueId
+    enabledParams.forEach(p => p.valueId = null)
+    
+    autoSaveStatus.value = {
+      type: 'success',
+      text: `已禁用 ${enabledParams.length} 个参数`
+    }
+    setTimeout(() => {
+      autoSaveStatus.value = null
+    }, 3000)
+  } catch (error) {
+    autoSaveStatus.value = {
+      type: 'error',
+      text: '批量禁用失败'
+    }
+    // 恢复状态
+    enabledParams.forEach(p => p.enabled = true)
+    setTimeout(() => {
+      autoSaveStatus.value = null
+    }, 5000)
+  }
+}
+
+/** 启用状态变化处理 */
+function handleEnableChange(param) {
+  if (param.enabled) {
+    // 启用时，如果没有值则使用默认值
+    if ((param.rawValue === null || param.rawValue === undefined || param.rawValue === '') && param.defaultValue) {
+      param.rawValue = param.defaultValue
+      // 根据值类型转换
+      if (param.valueType === 'UINT' || param.valueType === 'FLOAT') {
+        param.rawValue = parseFloat(param.rawValue)
+      }
+    }
+    // 保存当前值
+    handleParamChange(param)
+  } else {
+    // 禁用时，删除数据库中的配置值（但保留当前输入框中的值用于显示）
+    deleteParamValue(param)
+  }
+}
+
+/** 删除参数配置值 */
+async function deleteParamValue(param) {
+  if (!param.valueId) {
+    // 没有保存过，不需要删除，直接显示成功
+    autoSaveStatus.value = {
+      type: 'success',
+      text: '已设为固定值'
+    }
+    setTimeout(() => {
+      autoSaveStatus.value = null
+    }, 3000)
+    return
+  }
+  
+  autoSaveStatus.value = {
+    type: 'saving',
+    text: '清除配置...'
+  }
+  
+  try {
+    // 保存空值表示删除配置
+    const saveData = [{
+      paramId: param.paramId,
+      rawValue: '',  // 空值
+      enabled: false
+    }]
+    
+    await saveBasebandParamValue(unitId.value, saveData)
+    
+    // 清除valueId，但保留当前rawValue用于显示
+    param.valueId = null
+    
+    autoSaveStatus.value = {
+      type: 'success',
+      text: '已设为固定值'
+    }
+    setTimeout(() => {
+      autoSaveStatus.value = null
+    }, 3000)
+  } catch (error) {
+    autoSaveStatus.value = {
+      type: 'error',
+      text: '操作失败'
+    }
+    // 恢复启用状态
+    param.enabled = true
+    setTimeout(() => {
+      autoSaveStatus.value = null
+    }, 5000)
+  }
 }
 
 /** 参数变化处理（自动保存） */
@@ -1019,6 +1550,10 @@ watch(() => basebandStore.paramDefUpdateTime, (newTime, oldTime) => {
   gap: 12px;
 }
 
+.enable-btn-group {
+  margin-right: 8px;
+}
+
 .config-content {
   padding: 20px;
   min-height: 400px;
@@ -1089,6 +1624,48 @@ watch(() => basebandStore.paramDefUpdateTime, (newTime, oldTime) => {
   background: #f5f5f5;
 }
 
+/* 参数头部右侧 */
+.param-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.param-enable-switch {
+  --el-switch-on-color: #67c23a;
+}
+
+/* 参数控件禁用状态 */
+.param-control-disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* 禁用提示 */
+.disabled-hint {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  padding: 6px 10px;
+  background: #f0f9eb;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #67c23a;
+}
+
+.disabled-hint .el-icon {
+  font-size: 14px;
+}
+
+.disabled-hint-cell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #67c23a;
+  font-size: 12px;
+}
+
 /* 参数头部 */
 .param-header {
   display: flex;
@@ -1143,6 +1720,23 @@ watch(() => basebandStore.paramDefUpdateTime, (newTime, oldTime) => {
 .value-type-hex {
   background: #ffebee;
   color: #c62828;
+}
+
+/* 位宽类型指示器 */
+.param-bitwidth-indicator {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  background: #f3e5f5;
+  color: #7b1fa2;
+}
+
+.bitwidth-text {
+  font-size: 12px;
+  color: #7b1fa2;
+  font-weight: 500;
 }
 
 /* 参数控件 */
@@ -1343,6 +1937,168 @@ watch(() => basebandStore.paramDefUpdateTime, (newTime, oldTime) => {
 /* 优化表单控件样式 */
 :deep(.el-form-item) {
   margin-bottom: 8px;
+}
+
+/* 枚举选项显示样式 */
+.enum-option-display {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.enum-value {
+  color: #409eff;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+  min-width: 30px;
+  flex-shrink: 0;
+}
+
+.enum-separator {
+  color: #999;
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+
+.enum-label {
+  color: #333;
+  flex: 1;
+  text-align: left;
+}
+
+/* 选中状态下的枚举选项样式 */
+.baseband-select-popper .el-select-dropdown__item.selected .enum-value {
+  color: white;
+}
+
+.baseband-select-popper .el-select-dropdown__item.selected .enum-separator {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.baseband-select-popper .el-select-dropdown__item.selected .enum-label {
+  color: white;
+}
+
+/* 帧结构信息样式 */
+.frame-structure-info {
+  background: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e4e7ed;
+}
+
+.frame-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e4e7ed;
+}
+
+.frame-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.frame-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.frame-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-radius: 6px;
+  border: 1px solid #e4e7ed;
+  background: #fafafa;
+}
+
+.frame-field.editable {
+  background: #f0f9ff;
+  border-color: #409eff;
+}
+
+.frame-field.readonly {
+  background: #f5f7fa;
+  border-color: #dcdfe6;
+}
+
+.field-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.field-position {
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  color: #909399;
+  font-weight: 500;
+}
+
+.field-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.field-description {
+  font-size: 12px;
+  color: #606266;
+}
+
+.field-value {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.field-hex-display {
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: #409eff;
+  background: #ecf5ff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  min-width: 120px;
+  text-align: center;
+}
+
+.frame-field.editable .field-hex-display {
+  color: #67c23a;
+  background: #f0f9ff;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .frame-fields {
+    grid-template-columns: 1fr;
+  }
+  
+  .frame-field {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .field-value {
+    width: 100%;
+    justify-content: space-between;
+  }
 }
 
 :deep(.el-form-item__label) {

@@ -36,4 +36,12 @@ public interface ISysBasebandParamValueService
      * @return 结果
      */
     public int dispatchParams(Long unitId);
+
+    /**
+     * 智能生成符合约束的参数值
+     * 
+     * @param unitId 单元ID
+     * @return 智能参数值列表
+     */
+    public List<Map<String, Object>> generateSmartValues(Long unitId);
 }

@@ -24,3 +24,11 @@ export function dispatchBasebandParam(unitId) {
     method: 'post'
   })
 }
+
+// 智能生成符合约束的参数值
+export function generateSmartValues(unitId) {
+  return request({
+    url: '/system/baseband/value/' + unitId + '/smart-values',
+    method: 'get'
+  })
+}

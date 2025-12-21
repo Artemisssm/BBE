@@ -72,6 +72,15 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
           and (mode_types is null or mode_types = '' or FIND_IN_SET(#{modeType}, mode_types) > 0)
         order by priority desc, constraint_id
     </select>
+
+    <select id="selectConstraintsByUnit" resultMap="SysBasebandParamConstraintResult">
+        <include refid="selectSysBasebandParamConstraintVo"/>
+        where status = '0'
+          and (target_unit_name = #{unitName} or target_unit_name = '*')
+          and (target_unit_type = #{unitType} or target_unit_type = '*')
+          and (mode_types is null or mode_types = '' or FIND_IN_SET(#{modeType}, mode_types) > 0)
+        order by priority desc, constraint_id
+    </select>
         
     <insert id="insertSysBasebandParamConstraint" parameterType="SysBasebandParamConstraint" useGeneratedKeys="true" keyProperty="constraintId">
         insert into sys_baseband_param_constraint

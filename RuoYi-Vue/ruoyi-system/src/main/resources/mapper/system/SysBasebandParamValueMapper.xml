@@ -74,15 +74,20 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 
     <select id="selectParamVoListByUnitId" parameterType="Long" resultType="com.ruoyi.system.domain.vo.BasebandParamVo">
         SELECT 
-            d.param_id,
-            d.param_name,
-            d.param_code,
-            d.bit_width_type,
-            v.uint_value
+            d.param_id AS paramId,
+            d.param_name AS paramName,
+            d.param_code AS paramCode,
+            d.value_type AS valueType,
+            d.enum_options AS enumOptions,
+            d.bit_width_type AS bitWidthType,
+            d.sort_order AS sortOrder,
+            d.default_value AS defaultValue,
+            v.raw_value AS rawValue,
+            v.uint_value AS uintValue
         FROM sys_baseband_param_def d
         INNER JOIN sys_baseband_unit u ON d.unit_type = u.unit_type
         LEFT JOIN sys_baseband_param_value v ON v.param_id = d.param_id AND v.unit_id = u.unit_id
         WHERE u.unit_id = #{unitId}
-        ORDER BY d.param_id
+        ORDER BY d.sort_order ASC, d.param_id ASC
     </select>
 </mapper>

@@ -126,7 +126,12 @@
             开/关
           </span>
           <span v-else-if="scope.row.minValue !== null && scope.row.maxValue !== null" class="range-text">
-            {{ scope.row.minValue }} ~ {{ scope.row.maxValue }}
+            <span v-if="scope.row.valueType === 'HEX'">
+              0x{{ formatHexRange(scope.row.minValue) }} ~ 0x{{ formatHexRange(scope.row.maxValue) }}
+            </span>
+            <span v-else>
+              {{ scope.row.minValue }} ~ {{ scope.row.maxValue }}
+            </span>
           </span>
           <span v-else class="range-text">-</span>
         </template>
@@ -177,6 +182,7 @@
                 <el-option label="枚举" value="ENUM" />
                 <el-option label="无符号整数" value="UINT" />
                 <el-option label="浮点" value="FLOAT" />
+                <el-option label="16进制" value="HEX" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -273,6 +279,52 @@
             </el-form-item>
           </el-col>
         </el-row>
+        <el-row v-if="form.valueType === 'HEX'">
+          <el-col :span="12">
+            <el-form-item label="最小值" prop="minValue">
+              <el-input 
+                v-model="hexMinValue" 
+                placeholder="支持十进制或16进制 (如: 255 或 0xFF)"
+                style="width: 100%" 
+                @blur="handleHexMinValueChange"
+                @input="validateHexInput('min', $event)"
+              />
+              <div style="color: #909399; font-size: 12px; margin-top: 5px;">
+                {{ bitWidthRange.label }}
+                <br>
+                <span style="color: #f56c6c;">
+                  16进制: 0x{{ formatHexRange(bitWidthRange.min) }} ~ 0x{{ formatHexRange(bitWidthRange.max) }}
+                </span>
+                <br>
+                <span v-if="form.minValue !== null && form.minValue !== undefined" style="color: #67c23a;">
+                  当前值: {{ form.minValue }} (0x{{ formatHexRange(form.minValue) }})
+                </span>
+              </div>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="最大值" prop="maxValue">
+              <el-input 
+                v-model="hexMaxValue" 
+                placeholder="支持十进制或16进制 (如: 65535 或 0xFFFF)"
+                style="width: 100%" 
+                @blur="handleHexMaxValueChange"
+                @input="validateHexInput('max', $event)"
+              />
+              <div style="color: #909399; font-size: 12px; margin-top: 5px;">
+                {{ bitWidthRange.label }}
+                <br>
+                <span style="color: #f56c6c;">
+                  16进制: 0x{{ formatHexRange(bitWidthRange.min) }} ~ 0x{{ formatHexRange(bitWidthRange.max) }}
+                </span>
+                <br>
+                <span v-if="form.maxValue !== null && form.maxValue !== undefined" style="color: #67c23a;">
+                  当前值: {{ form.maxValue }} (0x{{ formatHexRange(form.maxValue) }})
+                </span>
+              </div>
+            </el-form-item>
+          </el-col>
+        </el-row>
         <el-row>
           <el-col :span="24">
             <el-form-item label="备注" prop="remark">
@@ -318,6 +370,10 @@ const single = ref(true)
 const multiple = ref(true)
 const total = ref(0)
 const title = ref("")
+
+// HEX类型输入框的显示值
+const hexMinValue = ref('')
+const hexMaxValue = ref('')
 
 const data = reactive({
   form: {},
@@ -394,7 +450,8 @@ function getValueTypeName(valueType) {
   const typeMap = {
     'ENUM': '枚举',
     'UINT': '整数',
-    'FLOAT': '浮点'
+    'FLOAT': '浮点',
+    'HEX': '16进制'
   }
   return typeMap[valueType] || valueType
 }
@@ -405,6 +462,7 @@ function getValueTypeTag(valueType) {
     'ENUM': '',
     'UINT': 'success',
     'FLOAT': 'warning',
+    'HEX': 'danger',
     'SWITCH': 'danger'
   }
   return tagMap[valueType] || 'info'
@@ -418,6 +476,110 @@ function getEnumCount(enumOptions) {
     return Object.keys(options).length
   } catch (e) {
     return 0
+  }
+}
+
+/** 格式化16进制范围显示 */
+function formatHexRange(value) {
+  if (value === null || value === undefined) return '0'
+  const num = Number(value)
+  if (isNaN(num)) return '0'
+  return num.toString(16).toUpperCase()
+}
+
+/** 解析16进制或十进制输入 */
+function parseHexOrDecimal(value) {
+  if (!value || value.trim() === '') return null
+  
+  const str = value.trim().toLowerCase()
+  
+  // 16进制格式 (0x开头)
+  if (str.startsWith('0x')) {
+    const hexValue = parseInt(str, 16)
+    return isNaN(hexValue) ? null : hexValue
+  }
+  
+  // 十进制格式
+  const decValue = parseInt(str, 10)
+  return isNaN(decValue) ? null : decValue
+}
+
+/** 验证16进制输入格式 */
+function validateHexInput(type, value) {
+  if (!value || value.trim() === '') return
+  
+  const parsedValue = parseHexOrDecimal(value)
+  if (parsedValue === null) {
+    // 输入格式错误，显示错误样式
+    if (type === 'min') {
+      hexMinValue.value = value // 保持用户输入，让用户看到错误
+    } else {
+      hexMaxValue.value = value
+    }
+  }
+}
+
+/** 处理16进制最小值变化 */
+function handleHexMinValueChange() {
+  const parsedValue = parseHexOrDecimal(hexMinValue.value)
+  
+  if (parsedValue === null) {
+    if (hexMinValue.value.trim() !== '') {
+      proxy.$modal.msgError('输入格式错误，请输入十进制数字或16进制格式 (如: 255 或 0xFF)')
+    }
+    // 恢复到之前的有效值
+    if (form.value.minValue !== null && form.value.minValue !== undefined) {
+      hexMinValue.value = String(form.value.minValue)
+    } else {
+      hexMinValue.value = ''
+    }
+    return
+  }
+  
+  // 更新表单值
+  form.value.minValue = parsedValue
+  
+  // 更新显示值为标准格式
+  hexMinValue.value = String(parsedValue)
+  
+  // 调用原有的验证逻辑
+  handleMinValueChange(parsedValue)
+}
+
+/** 处理16进制最大值变化 */
+function handleHexMaxValueChange() {
+  const parsedValue = parseHexOrDecimal(hexMaxValue.value)
+  
+  if (parsedValue === null) {
+    if (hexMaxValue.value.trim() !== '') {
+      proxy.$modal.msgError('输入格式错误，请输入十进制数字或16进制格式 (如: 65535 或 0xFFFF)')
+    }
+    // 恢复到之前的有效值
+    if (form.value.maxValue !== null && form.value.maxValue !== undefined) {
+      hexMaxValue.value = String(form.value.maxValue)
+    } else {
+      hexMaxValue.value = ''
+    }
+    return
+  }
+  
+  // 更新表单值
+  form.value.maxValue = parsedValue
+  
+  // 更新显示值为标准格式
+  hexMaxValue.value = String(parsedValue)
+  
+  // 调用原有的验证逻辑
+  handleMaxValueChange(parsedValue)
+}
+
+/** 同步HEX输入框的显示值 */
+function syncHexDisplayValues() {
+  if (form.value.valueType === 'HEX') {
+    hexMinValue.value = form.value.minValue !== null && form.value.minValue !== undefined 
+      ? String(form.value.minValue) : ''
+    hexMaxValue.value = form.value.maxValue !== null && form.value.maxValue !== undefined 
+      ? String(form.value.maxValue) : ''
   }
 }
 
@@ -435,10 +597,13 @@ function handleValueTypeChange() {
   if (form.value.valueType !== 'ENUM') {
     form.value.enumOptions = undefined
   }
-  if (form.value.valueType !== 'UINT' && form.value.valueType !== 'FLOAT') {
+  if (form.value.valueType !== 'UINT' && form.value.valueType !== 'FLOAT' && form.value.valueType !== 'HEX') {
     form.value.minValue = undefined
     form.value.maxValue = undefined
   }
+  
+  // 同步HEX输入框显示值
+  syncHexDisplayValues()
 }
 
 /** 位宽类型变化处理 */
@@ -634,6 +799,11 @@ function reset() {
     defaultValue: undefined,
     remark: undefined
   }
+  
+  // 清空HEX输入框
+  hexMinValue.value = ''
+  hexMaxValue.value = ''
+  
   proxy.resetForm("paramDefRef")
 }
 
@@ -669,6 +839,8 @@ function handleUpdate(row) {
   const paramId = row.paramId || ids.value[0]
   getBasebandParamDef(paramId).then(response => {
     form.value = response.data
+    // 同步HEX输入框显示值
+    syncHexDisplayValues()
     open.value = true
     title.value = "修改基带参数定义"
   })

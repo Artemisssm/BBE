@@ -62,4 +62,15 @@ public class SysBasebandParamValueController extends BaseController
     {
         return toAjax(sysBasebandParamValueService.dispatchParams(unitId));
     }
+
+    /**
+     * 智能生成符合约束的参数值
+     */
+    @PreAuthorize("@ss.hasPermi('system:basebandValue:list')")
+    @GetMapping("/{unitId}/smart-values")
+    public AjaxResult generateSmartValues(@PathVariable("unitId") Long unitId)
+    {
+        List<Map<String, Object>> smartValues = sysBasebandParamValueService.generateSmartValues(unitId);
+        return success(smartValues);
+    }
 }

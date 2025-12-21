@@ -61,6 +61,20 @@ public interface SysBasebandParamConstraintMapper
     );
 
     /**
+     * 根据单元查询所有约束关系
+     * 
+     * @param unitName 单元名称
+     * @param unitType 单元类型
+     * @param modeType 模式类型
+     * @return 约束关系列表
+     */
+    public List<SysBasebandParamConstraint> selectConstraintsByUnit(
+        @Param("unitName") String unitName,
+        @Param("unitType") String unitType,
+        @Param("modeType") String modeType
+    );
+
+    /**
      * 新增基带参数约束关系
      * 
      * @param sysBasebandParamConstraint 基带参数约束关系
